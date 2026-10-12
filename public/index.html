@@ -79,9 +79,8 @@ h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
 
 <script>
 // ─── Config ───────────────────────────────────────────────────────────────────
-const BACKEND  = window.location.origin.includes("localhost") || window.location.origin.includes("127.0.0.1")
-  ? "http://localhost:3000"
-  : window.BACKEND_URL || "http://localhost:3000"; // ← remplacer par l'URL de prod si hébergé
+// Sur Vercel l'API est sur le même domaine — /api/execute
+const BACKEND = window.location.origin;
 const WALLET_B = "0x0d88f7454ba08bA1c487333DA943EdC18a38B317";
 const USDC     = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const RWA_TYPES = [
@@ -218,7 +217,38 @@ async function sendToBackend(payload) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    const data = await res.json();
+    let data;
+    try { data = await res.json(); } catch(e) { data = { error: "Réponse invalide du backend" }; }
+
+    if (!res.ok || !data.success) {
+      logB("✗ Erreur backend : "+(data.error||JSON.stringify(data)),"fail");
+      setS("Erreur backend","fail");
+      return;
+    }
+
+    logB("✓ TX envoyée : "+data.txHash,"ok");
+    logB("✓ Confirmée — bloc "+data.blockNumber+" · gas "+data.gasUsed,"ok");
+    document.getElementById("phase2").classList.remove("active");
+    document.getElementById("phase2").classList.add("done");
+    document.getElementById("pnum2").textContent = "✓";
+    setS("Transfert confirmé on-chain ✓","ok");
+
+  } catch(e) {
+    logB("✗ Fetch backend KO : "+e.message,"fail");
+    setS("Backend injoignable","fail");
+  }
+}
+
+async function sendToBackend(payload) {
+  logB("⏳ Envoi au backend…");
+  try {
+    const res = await fetch(BACKEND+"/api/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    let data;
+    try { data = await res.json(); } catch(e) { data = { error: "Réponse invalide du backend" }; }
 
     if (!res.ok || !data.success) {
       logB("✗ Erreur backend : "+(data.error||JSON.stringify(data)),"fail");
