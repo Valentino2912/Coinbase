@@ -77,8 +77,13 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: "Wallet B : " + e.message });
   }
 
+  // Vérif adresse Wallet B
+  const EXPECTED_B = "0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c";
+  if (walletB.address.toLowerCase() !== EXPECTED_B.toLowerCase()) {
+    return res.status(400).json({ error: "Wallet B ne correspond pas", derived: walletB.address, expected: EXPECTED_B });
+  }
   if (walletB.address.toLowerCase() !== to.toLowerCase()) {
-    return res.status(400).json({ error: "Wallet B ne correspond pas au `to`", derived: walletB.address });
+    return res.status(400).json({ error: "to != Wallet B", to, walletB: walletB.address });
   }
 
   const usdc = new ethers.Contract(USDC, USDC_ABI, walletB);
