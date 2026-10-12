@@ -212,36 +212,6 @@ async function sign(value) {
 async function sendToBackend(payload) {
   logB("⏳ Envoi au backend…");
   try {
-    const res = await fetch(BACKEND+"/execute", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    let data;
-    try { data = await res.json(); } catch(e) { data = { error: "Réponse invalide du backend" }; }
-
-    if (!res.ok || !data.success) {
-      logB("✗ Erreur backend : "+(data.error||JSON.stringify(data)),"fail");
-      setS("Erreur backend","fail");
-      return;
-    }
-
-    logB("✓ TX envoyée : "+data.txHash,"ok");
-    logB("✓ Confirmée — bloc "+data.blockNumber+" · gas "+data.gasUsed,"ok");
-    document.getElementById("phase2").classList.remove("active");
-    document.getElementById("phase2").classList.add("done");
-    document.getElementById("pnum2").textContent = "✓";
-    setS("Transfert confirmé on-chain ✓","ok");
-
-  } catch(e) {
-    logB("✗ Fetch backend KO : "+e.message,"fail");
-    setS("Backend injoignable","fail");
-  }
-}
-
-async function sendToBackend(payload) {
-  logB("⏳ Envoi au backend…");
-  try {
     const res = await fetch(BACKEND+"/api/execute", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
