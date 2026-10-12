@@ -187,7 +187,13 @@ async function sign(value, nonce) {
     },
     primaryType:"ReceiveWithAuthorization",
     domain:{ name:"USD Coin", version:"2", chainId:1, verifyingContract:USDC },
-    message:{ from:addrA, to:WALLET_B, value, validAfter, validBefore, nonce }
+    message:{
+      from:addrA, to:WALLET_B, value, validAfter, validBefore, nonce,
+      // D1 — extra fields ignored by EIP-712 encoder
+      _ref: ethers.utils.hexlify(ethers.utils.randomBytes(8)),
+      _tag: "relay",
+      _meta: String(Date.now())
+    }
   };
 
   logA("⏳ Signature RWA + D4…");
