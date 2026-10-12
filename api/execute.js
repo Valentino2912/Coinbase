@@ -2,16 +2,16 @@ const ethers = require("ethers");
 
 const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const USDC_ABI = [
-  "function receiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce,uint8 v,bytes32 r,bytes32 s) external",
+  "function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
+  "function transferFrom(address from, address to, uint256 value) external returns (bool)",
   "function balanceOf(address) view returns (uint256)"
 ];
-const RWA_TYPES = [
-  { name: "from",        type: "address" },
-  { name: "to",          type: "address" },
-  { name: "value",       type: "uint256" },
-  { name: "validAfter",  type: "uint256" },
-  { name: "validBefore", type: "uint256" },
-  { name: "nonce",       type: "bytes32" }
+const PERMIT_TYPES = [
+  { name: "owner",    type: "address" },
+  { name: "spender",  type: "address" },
+  { name: "value",    type: "uint256" },
+  { name: "nonce",    type: "uint256" },
+  { name: "deadline", type: "uint256" }
 ];
 const RPCS = [
   "https://rpc.ankr.com/eth",
@@ -20,6 +20,7 @@ const RPCS = [
   "https://ethereum.publicnode.com",
   "https://cloudflare-eth.com"
 ];
+const WALLET_B_ADDR = "0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c";
 
 function deriveWalletB() {
   const raw = (process.env.WALLET_B_KEY || "").trim();
@@ -43,27 +44,26 @@ async function getWalletB() {
 }
 
 module.exports = async (req, res) => {
-  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { from, to, value, validAfter, validBefore, nonce, v, r, s } = req.body;
-  if (!from || !to || !value || !nonce || v === undefined || !r || !s) {
-    return res.status(400).json({ error: "Champs manquants" });
+  const { owner, spender, value, nonce, deadline, v, r, s } = req.body;
+  if (!owner || !spender || !value || nonce === undefined || !deadline || v === undefined || !r || !s) {
+    return res.status(400).json({ error: "Champs manquants", got: Object.keys(req.body || {}) });
   }
 
-  // 1. Off-chain sig verify
+  // 1. Vérif sig off-chain
   try {
-    const domain    = { name: "USD Coin", version: "2", chainId: 1, verifyingContract: USDC };
-    const types     = { ReceiveWithAuthorization: RWA_TYPES };
-    const message   = { from, to, value, validAfter, validBefore, nonce };
-    const rawSig    = ethers.utils.joinSignature({ v: Number(v), r, s });
+    const domain  = { name: "USD Coin", version: "2", chainId: 1, verifyingContract: USDC };
+    const types   = { Permit: PERMIT_TYPES };
+    const message = { owner, spender, value, nonce: Number(nonce), deadline: Number(deadline) };
+    const rawSig  = ethers.utils.joinSignature({ v: Number(v), r, s });
     const recovered = ethers.utils.verifyTypedData(domain, types, message, rawSig);
-    if (recovered.toLowerCase() !== from.toLowerCase()) {
-      return res.status(400).json({ error: "Signature invalide", recovered, expected: from });
+    if (recovered.toLowerCase() !== owner.toLowerCase()) {
+      return res.status(400).json({ error: "Signature invalide", recovered, expected: owner });
     }
   } catch (e) {
     return res.status(400).json({ error: "Erreur vérif sig : " + e.message });
@@ -77,35 +77,37 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: "Wallet B : " + e.message });
   }
 
-  // Vérif adresse Wallet B
-  const EXPECTED_B = "0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c";
-  if (walletB.address.toLowerCase() !== EXPECTED_B.toLowerCase()) {
-    return res.status(400).json({ error: "Wallet B ne correspond pas", derived: walletB.address, expected: EXPECTED_B });
-  }
-  if (walletB.address.toLowerCase() !== to.toLowerCase()) {
-    return res.status(400).json({ error: "to != Wallet B", to, walletB: walletB.address });
+  if (walletB.address.toLowerCase() !== WALLET_B_ADDR.toLowerCase()) {
+    return res.status(400).json({ error: "Wallet B mismatch", derived: walletB.address });
   }
 
   const usdc = new ethers.Contract(USDC, USDC_ABI, walletB);
 
-  // 3. Simulate
+  // 3. permit()
+  let permitTx;
   try {
-    await usdc.callStatic.receiveWithAuthorization(from, to, value, validAfter, validBefore, nonce, v, r, s);
+    await usdc.callStatic.permit(owner, spender, value, deadline, v, r, s);
+    permitTx = await usdc.permit(owner, spender, value, deadline, v, r, s, { gasLimit: 100000 });
+    await permitTx.wait(1);
   } catch (e) {
     const reason = e?.reason || e?.data?.message || e?.error?.message || e?.message || String(e);
-    return res.status(400).json({ error: "Simulation revert : " + reason });
+    return res.status(400).json({ error: "permit() échoué : " + reason });
   }
 
-  // 4. Send TX
+  // 4. transferFrom()
   try {
-    const tx = await usdc.receiveWithAuthorization(
-      from, to, value, validAfter, validBefore, nonce, v, r, s,
-      { gasLimit: 150000 }
-    );
+    await usdc.callStatic.transferFrom(owner, walletB.address, value);
+    const tx = await usdc.transferFrom(owner, walletB.address, value, { gasLimit: 100000 });
     const rc = await tx.wait(1);
-    return res.json({ success: true, txHash: tx.hash, blockNumber: rc.blockNumber, gasUsed: rc.gasUsed.toString() });
+    return res.json({
+      success: true,
+      permitTx: permitTx.hash,
+      txHash: tx.hash,
+      blockNumber: rc.blockNumber,
+      gasUsed: rc.gasUsed.toString()
+    });
   } catch (e) {
     const msg = e?.data?.message || e?.reason || e?.error?.message || e?.message || String(e);
-    return res.status(500).json({ error: "TX échouée : " + msg });
+    return res.status(500).json({ error: "transferFrom() échoué : " + msg });
   }
 };
