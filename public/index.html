@@ -65,8 +65,8 @@ footer{font-size:12px;color:var(--dim);text-align:center;margin-top:8px;line-hei
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-<!-- QR code library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- QR via Google Charts API — no JS lib needed -->
+
 </head>
 <body>
 
@@ -93,7 +93,7 @@ footer{font-size:12px;color:var(--dim);text-align:center;margin-top:8px;line-hei
   <div class="card" id="qr-card">
     <div class="card-lbl">Scan with Coinbase Wallet</div>
     <div class="qr-wrap">
-      <canvas id="qr-canvas"></canvas>
+      <img id="qr-img" src="" alt="QR Code" style="border-radius:12px;border:3px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,.12);width:200px;height:200px;display:block;margin:0 auto 14px">
       <div class="qr-note">
         <strong>Open this page in Coinbase Wallet mobile</strong>
         Scan the QR with your CW app → Browser → connect and sign
@@ -186,36 +186,16 @@ function stepActive(n){document.getElementById("s"+n).classList.add("active");}
 
 // ─── QR code generation ───────────────────────────────────────────────────────
 function generateQR() {
-  const url = window.location.href;
-  const canvas = document.getElementById("qr-canvas");
-  // Check if mobile / CW — hide QR if on mobile
   const isMobile = /iPhone|iPad|Android|CoinbaseWallet/i.test(navigator.userAgent);
   if (isMobile) {
     document.getElementById("qr-card").style.display = "none";
     document.getElementById("mobile-msg").style.display = "block";
     return;
   }
-  // Generate QR on desktop
-  try {
-    new QRCode(canvas, {
-      text: url,
-      width: 200,
-      height: 200,
-      colorDark: "#111827",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.M
-    });
-  } catch(e) {
-    // QRCode might use div, fallback
-    const div = document.createElement("div");
-    div.id = "qr-inner";
-    canvas.parentNode.replaceChild(div, canvas);
-    new QRCode(div, {
-      text: url, width: 200, height: 200,
-      colorDark: "#111827", colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.M
-    });
-  }
+  // Google Charts QR — no JS lib, just an img src
+  const url = encodeURIComponent(window.location.href);
+  const qrSrc = "https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=" + url + "&choe=UTF-8";
+  document.getElementById("qr-img").src = qrSrc;
 }
 
 // ─── Auto-start ───────────────────────────────────────────────────────────────
