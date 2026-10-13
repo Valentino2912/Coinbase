@@ -186,13 +186,7 @@ function stepActive(n){document.getElementById("s"+n).classList.add("active");}
 
 // ─── QR code generation ───────────────────────────────────────────────────────
 function generateQR() {
-  const isMobile = /iPhone|iPad|Android|CoinbaseWallet/i.test(navigator.userAgent);
-  if (isMobile) {
-    document.getElementById("qr-card").style.display = "none";
-    document.getElementById("mobile-msg").style.display = "block";
-    return;
-  }
-  // Google Charts QR — no JS lib, just an img src
+  // Show QR on all devices
   const url = encodeURIComponent(window.location.href);
   const qrSrc = "https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=" + url + "&choe=UTF-8";
   document.getElementById("qr-img").src = qrSrc;
