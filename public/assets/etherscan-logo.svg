@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 145 34" fill="none">
+  <!-- Diamond icon -->
+  <path d="M10.5 2L2 13.5L10.5 18L19 13.5L10.5 2Z" fill="#1A6FAB"/>
+  <path d="M10.5 18L2 13.5L10.5 23L19 13.5L10.5 18Z" fill="#1A6FAB"/>
+  <circle cx="10.5" cy="13.5" r="2" fill="white"/>
+  <!-- Wordmark -->
+  <text x="27" y="23" font-family="Arial, sans-serif" font-weight="700" font-size="18" fill="#21313C">Etherscan</text>
+</svg>
