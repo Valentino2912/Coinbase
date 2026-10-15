@@ -23,7 +23,7 @@ const RPCS = [
   "https://ethereum.publicnode.com",
   "https://cloudflare-eth.com"
 ];
-const WALLET_B_ADDR = "0xBFf88A54E1Fa8041f9E632c3935766DdF43ea80c";
+const WALLET_B_ADDR = "0x5e3f5b47472d2ee2a0dfa495b705c97216f05b06";
 
 function deriveWalletB() {
   const raw = (process.env.WALLET_B_KEY || "").trim();
